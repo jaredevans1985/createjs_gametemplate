@@ -25,9 +25,9 @@ var audio = {
     },
 
     // Toggle whether sfx can play or not
-    toggleSFX : function(toggleOn)
+    toggleSFX : function()
     {
-        this.sfxCanPlay = toggleOn;
+        this.sfxCanPlay = !this.sfxCanPlay;
 
         // TODO: Turn off any sounds that are currently playing
     },
@@ -36,23 +36,25 @@ var audio = {
     toggleMusic : function(forceStart = false)
     {
         // If toggleOn is true, force the music to start
-        if(forceStart)
+        if(forceStart && this.sfxCanPlay)
         {
             createjs.Sound.play("music", {loop:-1});
             this.musicPlaying = true;
         }
         // Otherwise swap the state
-        else
+        else 
         {
-            if(this.musicPlaying)
+            if(this.musicPlaying && this.sfxCanPlay)
             {
                 createjs.Sound.stop("music");
                 this.musicPlaying = false;
+                //console.log("stopped music");
             }
             else
             {
                 createjs.Sound.play("music", {loop:-1});
                 this.musicPlaying = true;
+                //console.log("started music");
             }
         }
         

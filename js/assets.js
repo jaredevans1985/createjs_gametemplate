@@ -26,16 +26,16 @@ var assets = {
                 src: "images/pig.png",
                 id: "pig"
             },
-            /*{
-                src: "static/grant.json",
-                id:"grant",
+            {
+                src: "images/ui/soundbuttons.json",
+                id:"soundui",
                 type:"spritesheet",
                 crossOrigin:true
-            },*/
+            },
         ];
 
         // Set the root filepath for our assets
-        this.queue = new createjs.LoadQueue(true, "media/");
+        this.queue = new createjs.LoadQueue(true, "../media/");
     
         // Use the following to use 'mp3' if 'ogg' doesn't work on browser
         createjs.Sound.alternateExtensions = ["mp3"];
@@ -57,7 +57,7 @@ var assets = {
         app.gotoScreen("mainmenu");
 
         // Start the music
-        //audio.toggleMusic(true);
+        audio.toggleMusic(true);
     },
 
     // When an individual file is loaded, call this function
@@ -77,7 +77,7 @@ var assets = {
     getResult(id)
     {
        var result = this.queue.getResult(id);  
-       console.log(result);
+       //console.log(result);
        return result;
     },
 

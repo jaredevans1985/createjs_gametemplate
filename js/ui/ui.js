@@ -36,11 +36,23 @@ var ui = {
         newButton.setBounds(0, 0, w, h);
         newButton.setTransform(x - (w / 2), y - (h / 2));
 
+        // Set our toggle boolean
+        newButton.canToggle = false;
+        newButton.toggledOn = true;
 
-        // Our colors, either passed in or set here
-        newButton.color = colorInfo ? colorInfo.color : ui.colors.default;
-        newButton.highlightColor = colorInfo ? colorInfo.highlightColor : ui.colors.light;
-        newButton.pressedColor = colorInfo ? colorInfo.pressedColor : ui.colors.dark;
+        // Our colors, either the defaults, or pulled from colorInfo
+        newButton.color = ui.colors.default;
+        newButton.highlightColor = ui.colors.light;
+        newButton.pressedColor = ui.colors.dark;
+        newButton.offColor = "#ddd";
+
+        if(colorInfo)
+        {
+            newButton.color = colorInfo.color ? colorInfo.color : ui.colors.default;
+            newButton.highlightColor = colorInfo.highlightColor ? colorInfo.highlightColor : ui.colors.light;
+            newButton.pressedColor = colorInfo.pressedColor ? colorInfo.pressedColor : ui.colors.dark;
+            newButton.offColor = colorInfo.offColor ? colorInfo.offColor : "#ddd";
+        }
         
         // Our fill shape
         newButton.fillShape = new createjs.Shape();
@@ -58,12 +70,26 @@ var ui = {
             //console.log("mouseover");
         });        
         newButton.on("mouseout", function(evt) { 
-            this.fillShape.graphics.setStrokeStyle(2).beginStroke(newButton.pressedColor).beginFill(newButton.color).drawRect(0, 0, w, h);
+            if(this.toggledOn)
+            {
+                this.fillShape.graphics.setStrokeStyle(2).beginStroke(newButton.pressedColor).beginFill(newButton.color).drawRect(0, 0, w, h);
+            }
+            else
+            {
+                this.fillShape.graphics.setStrokeStyle(2).beginStroke(newButton.highlightColor).beginFill(newButton.offColor).drawRect(0, 0, w, h);
+            }
+
             //console.log("mouseout");
         });        
         newButton.on("mousedown", function(evt) { 
             this.fillShape.graphics.setStrokeStyle(2).beginStroke(newButton.highlightColor).beginFill(newButton.pressedColor).drawRect(0, 0, w, h);
             //console.log("mousedown");
+
+            // Do our toggling
+            if(this.canToggle)
+            {
+                this.toggledOn = !this.toggledOn;
+            }
 
             // Call our callback
             this.callback(evt);
@@ -90,9 +116,109 @@ var ui = {
     },
 
     // Make a button with sprites
-    makeSpriteButton()
+    makeSpriteButton(container, x, y, scaleX, scaleY, spritesheetID, normalSpriteID, highlightSpriteID, pressedSpriteID, inactiveSpriteID, textInfo)
     {
+      // Set-up our button's container
+      var newButton = new createjs.Container();
+      newButton.setTransform(x, y);
+      
+      // Set our toggle boolean
+      newButton.canToggle = false;
+      newButton.toggledOn = true;
 
+      // Our sprite and anim info
+      newButton.btnNormal = normalSpriteID;
+      newButton.btnHighlight = highlightSpriteID;
+      newButton.btnPressed = pressedSpriteID;
+      newButton.btnInactive = inactiveSpriteID;
+ 
+      newButton.sprite = new createjs.Sprite( assets.getResult(spritesheetID));
+      newButton.sprite.gotoAndStop(newButton.btnNormal);
+      newButton.sprite.set({scaleX: scaleX, scaleY: scaleY});
+      newButton.addChild(newButton.sprite);
+      
+      // Our callback function which is fired when the button is clicked on
+      newButton.callback = function(evt) {
+          console.log("WARNING: A button has the default callback");
+      }
+
+      // Our mouse action callbacks 
+      newButton.on("mouseover", function(evt) {
+          this.sprite.gotoAndStop(this.btnHighlight);
+          //console.log("mouseover");
+      });        
+      newButton.on("mouseout", function(evt) {
+        if(this.toggledOn)
+        {
+            this.sprite.gotoAndStop(this.btnNormal); 
+        }
+        else
+        {
+            this.sprite.gotoAndStop(this.btnInactive);
+        }
+          //console.log("mouseout");
+      });        
+      newButton.on("mousedown", function(evt) {  
+         this.sprite.gotoAndStop(this.btnPressed);
+
+        if(this.canToggle)
+        {
+            this.toggledOn = !this.toggledOn;
+        }
+         //console.log("mousedown");
+
+          // Call our callback
+          this.callback(evt);
+      }); 
+      newButton.on("click", function(evt) {
+         this.sprite.gotoAndStop(this.btnHighlight); 
+         //console.log("click");
+      });    
+
+      // If we get a bundle of text info, set up the text
+      if (textInfo)
+      {
+          newButton.text = this.makeText(
+              newButton, textInfo.text, w / 2, h / 2, 
+              textInfo.font ? textInfo.font : this.buttonFont.font, 
+              textInfo.color ? textinfo.color : this.buttonFont.color, 
+              textInfo.alignment ? textInfo.alignment : "center"
+          );
+      }
+
+      container.addChild(newButton);
+
+      return newButton;
+    },
+
+    // Make a music toggle button
+    makeMusicToggle(container, x = app.SCREEN_WIDTH - 75, y = 10)
+    {
+        var newButton = this.makeSpriteButton(container, x, y, 0.5, 0.5, "soundui", "music_on", "music_hi", "music_pressed", "music_off");
+        newButton.canToggle = true;
+        newButton.callback = function(evt) {
+            audio.toggleMusic();
+        }
+        
+        return newButton;
+    },
+
+    // Make a sfx toggle button
+    makeSFXToggle(container, x = app.SCREEN_WIDTH - 75, y = 25)
+    {
+        var newButton = this.makeSpriteButton(container, x, y, 0.5, 0.5, "soundui", "sound_on", "sound_hi", "sound_pressed", "sound_off");   
+        newButton.canToggle = true;
+        newButton.callback = function(evt) {
+            audio.toggleSFX();
+        }
+        
+        return newButton;
+    },
+
+    makeSoundButtons(container)
+    {
+        this.makeMusicToggle(container);
+        this.makeSFXToggle(container, app.SCREEN_WIDTH - 75, 75);
     },
 };
 

@@ -13,5 +13,8 @@ class MainMenu extends ScreenBase
         this.playButton.callback = function(evt) {
             app.gotoScreen("gameplay");
         }
+
+        // Make a music toggle button
+        ui.makeSoundButtons(this);
      }
 }

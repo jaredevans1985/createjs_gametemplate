@@ -47,9 +47,6 @@ var app = {
         this.screen.setBounds(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
         this.stage.addChild(this.screen);
 
-        // Create our graphics manager
-        //this.gfx = new GraphicsManager();
-
         // Enable and track mouse input
         this.stage.enableMouseOver();
         
