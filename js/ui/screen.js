@@ -1,36 +1,42 @@
-class ScreenBase extends createjs.Shape
+class ScreenBase extends createjs.Container
 {
-     constructor(c, w, h)
+     constructor(c = ui.colors.background, w = app.SCREEN_WIDTH, h = app.SCREEN_HEIGHT)
      {
         super();    
 
-        var width = w != null ? w : app.SCREEN_WIDTH;
-        var height = h != null ? h : app.SCREEN_WIDTH;
-        var color = c != null ? c : ui.colors.background;
+        this._width = w;
+        this._height = h;
+        this._color = c;
 
-        // Create a background that new elements are appended to
-        this._container = new createjs.Container();
-        this._container.setBounds(0, 0, width, height);
-        app.stage.addChild(this._container);
+        // Set my bounds and add me to the stage
+        this.setBounds(0, 0, this._width, this._height);
+        app.stage.addChild(this);
 
         // Create a shape to fill it
         this._fillShape = new createjs.Shape();
-        this._fillShape.graphics.beginFill(color).drawRect(0, 0, app.SCREEN_WIDTH, app.SCREEN_HEIGHT);
-        this._container.addChild(this._fillShape);
+        this._fillShape.graphics.beginFill(this._color).drawRect(0, 0, this._width, this._height);
+        this.addChild(this._fillShape);
      }
 
-     get container()
+     get container() { return this._container; }
+     set container(containerObj) { this._container = containerObj; }
+
+     get width() { return this._width; }
+     set width(w) { this._width = w; this.updateScreenSettings(); }
+
+     get height() { return this._height; }
+     set height(h) { this._height = h; this.updateScreenSettings(); }
+
+     get color() { return this._color; }
+     set color(c) { this._color = c; this.updateScreenSettings(); }
+
+     updateScreenSettings()
      {
-         return this._container;
+        this._fillShape.graphics.beginFill(this._color).drawRect(0, 0, this._width, this._height);
      }
 
-     set container(containerObj)
+     update(dt)
      {
-         this._container = containerObj;
-     }
-
-     setColor(color)
-     {
-        this._fillShape.graphics.beginFill(color);
+         // Feel free to do something in here, we expect this to be overridden
      }
 }

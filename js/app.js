@@ -26,7 +26,8 @@ var app = {
 
     // Game state
     //  - loading
-    //  - playing
+    //  - gameplay
+    //  - mainmenu
     gamestate: "loading",
 
     // Setup the canvas
@@ -46,11 +47,6 @@ var app = {
         this.screen.setBounds(0, 0, this.SCREEN_WIDTH, this.SCREEN_HEIGHT);
         this.stage.addChild(this.screen);
 
-        //Create a text object
-        myText = new createjs.Text("TOOTS", "12px Titan One", "#ff00ff");  //creates text object
-        myText.x = 100; //positions the text
-        myText.y = 200; 
-        this.screen.addChild(myText);  //adds the text object to the stage
         // Create our graphics manager
         //this.gfx = new GraphicsManager();
 
@@ -62,6 +58,10 @@ var app = {
             app.mouseX = Math.floor(evt.stageX);
             app.mouseY = Math.floor(evt.stageY);
             //console.log("Mouse: ( " + app.mouseX + ", " + app.mouseY + " )");
+        });
+        this.stage.on("stagemousedown", function (evt) {
+            // Play a sound
+            audio.playSound("click");
         });
 
         // Set up our basic keyboard inputs
@@ -116,18 +116,24 @@ var app = {
 
         app.stage.update();  //updates the stage
 
+        app.screen.update(dt); // update the current screen
+
         // Draw our game to match the state
         if(app.gamestate == "loading")
         {
-            //console.log("We're loading");
+            // If we're loading, update the screen fillbar
         }
-        else if (app.gamestate == "playing")
+        else if (app.gamestate == "mainmenu")
+        {
+            //console.log("We're playing");
+        }
+        else if (app.gamestate == "gameplay")
         {
             //console.log("We're playing");
         }
     },
 
-    // Given a screen id, change our screen to a new one
+    // Given a screen id, change our screen to a new one, set the appropriate game state
     gotoScreen: function(screenType)
     {
         // In most cases, we clear all the children of the current screen 
@@ -136,11 +142,19 @@ var app = {
             case "loading":
             this.screen.removeAllChildren();
             this.screen = new LoadingScreen();
+            this.state = "loading";
             break;
 
             case "mainmenu":
             this.screen.removeAllChildren();
             this.screen = new MainMenu();
+            this.state = "mainmenu";
+            break;
+
+            case "gameplay":
+            this.screen.removeAllChildren();
+            this.screen = new GameScreen();
+            this.state = "gameplay";
             break;
 
             default:

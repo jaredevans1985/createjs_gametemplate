@@ -4,6 +4,9 @@ var assets = {
     // This variable will store all of the results of our load, and can be queried later
     queue: null,
 
+    // track our load progress to be used as needed
+    loadPercentage : 0,
+
     // This is called from app.js and starts the load
     preloadAssets()
     {
@@ -51,7 +54,7 @@ var assets = {
     loadComplete(event)
     {
         // Do something when loading is complete, for instance, switch the game state
-        app.gamestate = 'playing';
+        app.gotoScreen("mainmenu");
 
         // Start the music
         //audio.toggleMusic(true);
@@ -67,6 +70,7 @@ var assets = {
     loadProgress(event)
     {
         // event.loaded gives us the percentage of our load
+        this.loadPercentage = event.loaded;
     },
 
     // Return a result from queue (will return 'null' if no result was found with that ID)
