@@ -14,7 +14,8 @@ class MainMenu extends ScreenBase
             app.gotoScreen("gameplay");
         }
 
-        // Make a music toggle button
+        // Make a set of sound toggles
         ui.makeSoundButtons(this);
      }
 }
+

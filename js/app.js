@@ -22,13 +22,27 @@ var app = {
 
     // Asset management
     gameObjects: [],
-    gfx: null,
+    player: null,
 
     // Game state
     //  - loading
     //  - gameplay
     //  - mainmenu
     gamestate: "loading",
+
+    // Track the number of clicks during gameplay
+    numClicks: 0,
+
+    // Keyboard input info
+    KEYCODE_LEFT : { code: 37, isPressed: false},
+    KEYCODE_UP : { code: 38, isPressed: false},
+    KEYCODE_RIGHT : { code: 39, isPressed: false},
+    KEYCODE_DOWN : { code: 40, isPressed: false},
+    KEYCODE_SPACEBAR : { code: 32, isPressed: false},
+
+    // Player Movement Settings
+    moveSpeed: 100,
+    rotSpeed: 100,
 
     // Setup the canvas
     setupCanvas: function() {
@@ -57,41 +71,12 @@ var app = {
             //console.log("Mouse: ( " + app.mouseX + ", " + app.mouseY + " )");
         });
         this.stage.on("stagemousedown", function (evt) {
-            // Play a sound
-            audio.playSound("click");
+            app.handleMouseDown(evt)
         });
 
-        // Set up our basic keyboard inputs
-        var KEYCODE_LEFT = 37;
-        var KEYCODE_UP = 38;
-        var KEYCODE_RIGHT = 39;
-        var KEYCODE_DOWN = 40;
-        var KEYCODE_SPACEBAR = 32;
-        
-        function handleKeyDown(evt) {
-        if(!evt){ var evt = window.event; }  //browser compatibility
-            switch(evt.keyCode) {
-                case KEYCODE_LEFT:  console.log(evt.keyCode+" down"); return false;
-                case KEYCODE_RIGHT: console.log(evt.keyCode+" down"); return false;
-                case KEYCODE_UP:  console.log(evt.keyCode+" down"); return false;
-                case KEYCODE_DOWN:  console.log(evt.keyCode+" down"); return false;
-                case KEYCODE_SPACEBAR:  console.log(evt.keyCode+" down"); return false;
-            }
-        }
-        
-        function handleKeyUp(evt) {
-        if(!evt){ var evt = window.event; }  //browser compatibility
-            switch(evt.keyCode) {
-                case KEYCODE_LEFT:  console.log(evt.keyCode+" up"); break;
-                case KEYCODE_RIGHT:   console.log(evt.keyCode+" up"); break;
-                case KEYCODE_UP:    console.log(evt.keyCode+" up"); break;
-                case KEYCODE_DOWN:  console.log(evt.keyCode+" up"); break;
-                case KEYCODE_SPACEBAR:  console.log(evt.keyCode+" up"); break;
-            }
-        }
-        
-        document.onkeydown = handleKeyDown;
-        document.onkeyup = handleKeyUp;
+        // Set up our basic keyboard inputs 
+        document.onkeydown = this.handleKeyDown;
+        document.onkeyup = this.handleKeyUp;
 
         // Preload our game assets
         assets.preloadAssets();
@@ -102,7 +87,32 @@ var app = {
 
         // Create the first screen
         this.gotoScreen("loading");
+    },
 
+    handleKeyDown: function(evt)
+    {
+        if(!evt){ var evt = window.event; }  //browser compatibility
+        
+        switch(evt.keyCode) {
+            case app.KEYCODE_LEFT.code:     app.KEYCODE_LEFT.isPressed = true; return false;
+            case app.KEYCODE_RIGHT.code:    app.KEYCODE_RIGHT.isPressed = true; return false;
+            case app.KEYCODE_UP.code:       app.KEYCODE_UP.isPressed = true; return false;
+            case app.KEYCODE_DOWN.code:     app.KEYCODE_DOWN.isPressed = true; return false;
+            case app.KEYCODE_SPACEBAR.code: app.KEYCODE_SPACEBAR.isPressed = true; return false;
+        }
+    },
+        
+    handleKeyUp: function (evt)
+    {
+        if(!evt) { var evt = window.event; }  //browser compatibility
+        
+        switch(evt.keyCode) {
+            case app.KEYCODE_LEFT.code:     app.KEYCODE_LEFT.isPressed = false; break;
+            case app.KEYCODE_RIGHT.code:    app.KEYCODE_RIGHT.isPressed = false; break;
+            case app.KEYCODE_UP.code:       app.KEYCODE_UP.isPressed = false; break;
+            case app.KEYCODE_DOWN.code:     app.KEYCODE_DOWN.isPressed = false; break;
+            case app.KEYCODE_SPACEBAR.code: app.KEYCODE_SPACEBAR.isPressed = false; break;
+        }
     },
 
     // Our game's update function, which will be run every tick at the FPS we specified
@@ -112,19 +122,79 @@ var app = {
         var dt = event.delta / 1000;
 
         app.stage.update();  //updates the stage
-
         app.screen.update(dt); // update the current screen
 
-        // Draw our game to match the state
-        if(app.gamestate == "loading")
+        //Update all of our game objects
+        for (var i = 0; i < app.gameObjects.length; i++)
+        {
+            app.gameObjects[i].update(dt);
+        }
+
+        // Particle test code
+        //app.ps.position = { x: app.stage.mouseX, y: app.stage.mouseY }; 
+        //app.ps.update(app.stage);
+
+        // Update our game to match the state
+        if(app.state == "loading")
         {
             // If we're loading, update the screen fillbar
         }
-        else if (app.gamestate == "mainmenu")
+        else if (app.state == "mainmenu")
         {
             //console.log("We're playing");
         }
-        else if (app.gamestate == "gameplay")
+        else if (app.state == "gameplay")
+        {
+            //console.log("We're playing");
+            if(app.KEYCODE_LEFT.isPressed)
+            {
+                app.player.addRotation(-app.rotSpeed * dt); 
+            }
+
+            if(app.KEYCODE_RIGHT.isPressed)
+            {
+                app.player.addRotation(app.rotSpeed * dt);
+            }
+
+            if(app.KEYCODE_UP.isPressed)
+            {
+                var posX = app.moveSpeed * dt * math.cos(app.player.getRotationRadians());
+                var posY = app.moveSpeed * dt * math.sin(app.player.getRotationRadians());
+                app.player.addPosition(posX,posY);
+            }
+
+            if(app.KEYCODE_DOWN.isPressed)
+            {
+                var posX = app.moveSpeed * dt * math.cos(app.player.getRotationRadians());
+                var posY = app.moveSpeed * dt * math.sin(app.player.getRotationRadians());
+                app.player.addPosition(-posX,-posY);
+            }
+
+        }
+
+        // Now that everything is updated, draw our game
+        app.draw(dt); 
+    },
+
+    // Our game's draw function, which will be run every tick at the FPS we specified
+    draw: function (dt)
+    {
+        //Draw all of our game objects
+        for (var i = 0; i < app.gameObjects.length; i++)
+        {
+            app.gameObjects[i].draw(dt);
+        }
+
+        // Draw our game to match the state
+        if(app.state == "loading")
+        {
+            // If we're loading, update the screen fillbar
+        }
+        else if (app.state == "mainmenu")
+        {
+            //console.log("We're playing");
+        }
+        else if (app.state == "gameplay")
         {
             //console.log("We're playing");
         }
@@ -152,12 +222,32 @@ var app = {
             this.screen.removeAllChildren();
             this.screen = new GameScreen();
             this.state = "gameplay";
+            this.resetGame();
             break;
 
             default:
             console.log("ERROR: Cannot swap screen, invalid ID");
             break;
         }
+    },
+
+    // When the mouse is clicked, pass it on to the appropriate places
+    handleMouseDown: function(evt)
+    {
+        // Play a sound
+        audio.playSound("click");
+
+        if(app.state == "gameplay")
+        {
+            app.numClicks++;
+
+            app.screen.clickUI.text = "NumClicks: " + app.numClicks;
+        }
+    },
+
+    resetGame: function()
+    {
+        app.player = new Actor(app.stage, "image", "pig", "player", app.SCREEN_WIDTH / 2, app.SCREEN_HEIGHT /2, 0.5, 0.5);
     },
 
 }
