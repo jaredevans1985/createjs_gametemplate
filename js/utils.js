@@ -14,6 +14,27 @@ function randColor (min, max) {
 	);
 }
 
+// Lerp between two colors
+function lerpColor(colorA, colorB, value)
+{
+	// Interpolate between all of the values
+	var r = lerp(colorA.r, colorB.r, value);
+	var g = lerp(colorA.g, colorB.g, value);
+	var b = lerp(colorA.b, colorB.b, value);
+	var a = lerp(colorA.a, colorB.a, value);
+
+	// Return our new color
+	return new RGBA(r, g, b, a);
+}
+
+function lerp(valA, valB, value)
+{
+	// Clamp the value
+	value = value > 1 ? 1 : value;
+	value = value < 0 ? 0 : value;
+	return valA * (1 - value) + valB * value;
+}
+
 // Return a color defined in RGBA format
 function RGBA (r,g,b,a) {
 	this.r = r;
