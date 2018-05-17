@@ -97,22 +97,21 @@ function Particle () {
 }
 
 // This object is the emitter that contains all of our particles, and is tracked in app.js
-function Emitter (index) {
-	
-	// What is my index in our particle system?
-	this.particleSystemIndex = index;
+function Emitter () {
 
 	// Emitter settings
 	this.particles = [];
-	this.count = 100;
+	this.maxParticleCount = 100;
 	this.positionOffsetX = { min: 0, max: 0 };
 	this.positionOffsetY = { min: 0, max: 0 };
 	this.emitterLifetime = null;
 	this.rate = 1;
 	this.timeSinceLastSpawn = 0;
-	
+	this.burstCount = 0; // NOTE: If this is set, this emitter functions as a burst, and dies when its particles are dead
+	this.hasSpawnedAParticle = false;	// Tracks if we've spawn anything yet, used for bursts and spawning the first particle in a stream
+
 	// Particle settings
-	this.lifetime = { min: 10, max: 50 };
+	this.lifetime = { min: 1, max: 2 };
 	this.velocityX = { min: 0, max: 0 };
 	this.velocityY = { min: 0, max: 0 };
 	this.position = { x: 0, y: 0 };
@@ -131,11 +130,31 @@ function Emitter (index) {
 		max: new RGBA(255,0,0,0)
 	};
 	
+	// make a particle based on our settings
+	this.spawnParticle = function()
+	{
+		var p = new Particle();
+		p.lifetime = rand(this.lifetime.min, this.lifetime.max);
+		p.position = { x: this.position.x + rand(this.positionOffsetX.min, this.positionOffsetX.max),
+					y: this.position.y + rand(this.positionOffsetY.min, this.positionOffsetY.max) };
+		p.size = rand(this.size.min, this.size.max);
+		p.endScale = this.endScale;
+		p.velocity = { x: rand(this.velocityX.min, this.velocityX.max),
+					y: rand(this.velocityY.min, this.velocityY.max) }
+		
+		p.startColor = randColor(this.startColor.min, this.startColor.max);
+		p.endColor = randColor(this.endColor.min, this.endColor.max);
+		
+		p.type = this.type;
+		p.gradientFill = this.gradientFill;
+
+		this.particles.push(p);
+	}
+
 	this.update = function(dt) {
 		
 		// Update each of our particles, and clean them up if they're dead
 		this.particles.forEach(function(p,i,array) {
-			
 			if (p.isDead()) {
 				p.dispose();
 				array.splice(i,1);
@@ -144,28 +163,35 @@ function Emitter (index) {
 			}
 		});
 		
-		// Spawn particles to match our rate, but don't go over our limit
+		// How long since the last particle was spawned
 		this.timeSinceLastSpawn += 1 * dt;
-		if(this.particles.length < this.count && this.timeSinceLastSpawn >= 1 / this.rate)
+
+		// Only run this logic if we're a burst
+		if(this.burstCount > 0)
+		{
+			// Only run this 
+			if (this.particles.length <= 0 && !this.hasSpawnedAParticle)
+			{
+				this.hasSpawnedAParticle = true;
+				for (var i = 0; i < this.burstCount; i++)
+				{
+					this.spawnParticle();
+				}
+			}
+		}
+		// Spawn particles to match our rate, but don't go over our limit
+		else if(this.particles.length < this.maxParticleCount && this.timeSinceLastSpawn >= 1 / this.rate)
 		{
 			this.timeSinceLastSpawn = 0;
 
-			var p = new Particle();
-			p.lifetime = rand(this.lifetime.min, this.lifetime.max);
-			p.position = { x: this.position.x + rand(this.positionOffsetX.min, this.positionOffsetX.max),
-						y: this.position.y + rand(this.positionOffsetY.min, this.positionOffsetY.max) };
-			p.size = rand(this.size.min, this.size.max);
-			p.endScale = this.endScale;
-			p.velocity = { x: rand(this.velocityX.min, this.velocityX.max),
-						y: rand(this.velocityY.min, this.velocityY.max) }
-			
-			p.startColor = randColor(this.startColor.min, this.startColor.max);
-			p.endColor = randColor(this.endColor.min, this.endColor.max);
-			
-			p.type = this.type;
-			p.gradientFill = this.gradientFill;
+			this.spawnParticle();
+		}
+		// If we're here, create the first particle for our stream
+		else if (!this.hasSpawnedAParticle)
+		{
+			this.hasSpawnedAParticle = true;
 
-			this.particles.push(p);
+			this.spawnParticle();
 		}
 
 		// Check to see if this emitter is dead
@@ -177,6 +203,11 @@ function Emitter (index) {
 				this.kill();
 			}
 		}
+		// Check to see if this is a burst emitter whose particles are all dead
+		else if(this.burstCount > 0 && this.particles.length <= 0)
+		{
+			this.kill();
+		}
 	};
 
 	this.kill = function()
@@ -186,7 +217,8 @@ function Emitter (index) {
 			array.splice(i,1);
 		});
 
-		app.particleSystem.splice(this.particleSystemIndex, 1);
+		var myIndex = app.particleSystem.indexOf(this);
+		app.particleSystem.splice(myIndex, 1);
 		
 	}
 }
@@ -194,17 +226,73 @@ function Emitter (index) {
 // This effects object contains functions to build all of our effects as needed
 var effects = {
 
-	basicTrail: function(position)
+	// Add a new emitter to the particle system and return the new object
+	getNewEmitter: function()
 	{
-		// Find where our new emitter should go and create it
-		app.particleSystem.push( new Emitter(app.particleSystem.length) );
-		var newEmitter = app.particleSystem[app.particleSystem.length-1];
+		var newEmitter = new Emitter();
+		app.particleSystem.push( newEmitter );
+		return newEmitter;
+	},
+
+	// Example emitter creator function
+	// --------------
+	//
+	// Feel free to copy and uncomment this example function to create your own
+	//
+	// To use it, simply call the function from anywhere,
+	// and a new emitter will be added to the app particle system.
+	//
+	//exampleEmitter: function(position)	// You can add more arguments. Position can be an object reference for tracking
+	//{
+	//	// Get a new emitter
+	//	var newEmitter = this.getNewEmitter();
+	//
+	//	// Define the settings for this emitter and its particles
+	//	// Note that almost all of these settings have defaults,
+	//	// so omit the ones you don't need.
+	//
+	//	// Emitter settings	
+	// 	this.maxParticleCount = 100;	// Maximum number of particles allowed in the system, default is 100
+	// 	this.position = { x: 0, y: 0 };	// Where this emitter is, used as origin for particles
+	// 	this.positionOffsetX = { min: 0, max: 0 };	// a range for how far from the emitter origin a particle can spawn
+	// 	this.positionOffsetY = { min: 0, max: 0 };	// a range for how far from the emitter origin a particle can spawn
+	// 	this.emitterLifetime = null;	// If this is set to a value, how many seconds should this emitter exist
+	// 	this.rate = 1;	// The rate at which this emitter spawns particles
+	// 	this.burstCount = 0; 	// NOTE: If this is set, this emitter functions as a burst,
+	// 							// spawning the number of particles in burst count at once,
+	// 							// and dies when all of its particles are dead. It will not
+	// 							// have the standard before of other emitters
+
+	// 	// Particle settings
+	// 	this.lifetime = { min: 1, max: 2 };		// a range of how long in seconds a particle can exist
+	// 	this.velocityX = { min: 0, max: 0 };	// a range x velocity assigned randomly on creation
+	// 	this.velocityY = { min: 0, max: 0 };	// a range y velocity assigned randomly on creation		
+	// 	this.size = { min: 5, max: 10 };		// a range of how big this particle can be (does not apply to sprites)
+	// 	this.type = "circle";	// What kind of particle is it? "circle", "square"
+	// 	this.gradientFill = false;	// If true, will use the start and end colors to create a gradient
+	// 	this.endScale = {x : 0, y : 0};	// All particles start at 100% scale and interpolate to this scale
+
+	// 	// A range of colors that this particle will start with
+	// 	this.startColor = {
+	// 		min: new RGBA(200,80,0,125),
+	// 		max: new RGBA(255,160,0,125)
+	// 	};
+		
+	// 	// A range of colors that this particle will end with
+	// 	this.endColor = {
+	// 		min: new RGBA(220,0,0,0),
+	// 		max: new RGBA(255,0,0,0)
+	// 	};
+
+	// },
+
+	basicStream: function(position)
+	{
+		// Get a new emitter
+		var newEmitter = this.getNewEmitter();
 
 		// Define the settings for this emitter
-		//newEmitter.emitterLifetime = 5;
 		newEmitter.lifetime = { min: 1, max: 2 };
-		//newEmitter.gradientFill = true;
-		//newEmitter.type = "square";
         newEmitter.position = app.mousePos;
         newEmitter.positionOffsetX = { min: -3, max: 3 };
         newEmitter.positionOffsetY = { min: -3, max: 3 };
@@ -223,28 +311,32 @@ var effects = {
         };
 	},
 
+	basicBurst: function(position)
+	{
+		// Find where our new emitter should go and create it
+		var newEmitter = this.getNewEmitter();
+
+		// Define the settings for this emitter
+		// Because we define a burstCount for this emitter, it will function as a burst
+		// The emitter will automatically kill itself after its particles are dead
+		newEmitter.burstCount = 20;
+		newEmitter.lifetime = { min: 1, max: 2 };
+		newEmitter.type = "square";
+        newEmitter.position = app.mousePos;
+        newEmitter.positionOffsetX = { min: -3, max: 3 };
+        newEmitter.positionOffsetY = { min: -3, max: 3 };
+        newEmitter.velocityY = { min: -100, max: 100 };
+        newEmitter.velocityX = { min: -100, max: 100 };
+        newEmitter.radius = { min: 30, max: 45 };
+        newEmitter.startColor = {
+            min: new RGBA(0,50,230,255),
+            max: new RGBA(0,230,255,255)
+        };
+        
+        newEmitter.endColor = {
+            min: new RGBA(255,255,255,0),
+            max: new RGBA(255,255,255,0)
+        };
+	},
+
 };
-
-
-// app.ps = new ParticleSystem();
-// app.ps.lifetime = { min: 350, max: 600 };
-// app.ps.position = { x: app.SCREEN_WIDTH / 2, y: 50 };
-// app.ps.positionOffsetX = { min: -3, max: 3 };
-// app.ps.positionOffsetY = { min: -3, max: 3 };
-// app.ps.velocityY = { min: -2, max: 2 };
-// app.ps.velocityX = { min: -2, max: 2 };
-// app.ps.radius = { min: 7, max: 12 };
-// app.ps.count = 500;
-// app.ps.startColor = {
-//     min: new RGBA(230,50,0,255),
-//     max: new RGBA(255,230,0,255)
-// };
-
-// app.ps.endColor = {
-//     min: new RGBA(255,0,0,0),
-//     max: new RGBA(255,0,0,0)
-// };
-
-// Particle test code
-        //app.ps.position = { x: app.stage.mouseX, y: app.stage.mouseY }; 
-        //app.ps.update(app.stage);

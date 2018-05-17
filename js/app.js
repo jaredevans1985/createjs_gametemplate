@@ -78,7 +78,7 @@ var app = {
             //console.log("Mouse: ( " + app.mouseX + ", " + app.mouseY + " )");
         });
         this.stage.on("stagemousedown", function (evt) {
-            app.handleMouseDown(evt)
+            app.handleMouseDown(evt);
         });
 
         // Set up our basic keyboard inputs 
@@ -95,35 +95,6 @@ var app = {
         // Create the first screen
         this.gotoScreen("loading");
 
-        // test particles
-        effects.basicTrail(this.mousePos);
-        
-    },
-
-    handleKeyDown: function(evt)
-    {
-        if(!evt){ var evt = window.event; }  //browser compatibility
-        
-        switch(evt.keyCode) {
-            case app.KEYCODE_LEFT.code:     app.KEYCODE_LEFT.isPressed = true; return false;
-            case app.KEYCODE_RIGHT.code:    app.KEYCODE_RIGHT.isPressed = true; return false;
-            case app.KEYCODE_UP.code:       app.KEYCODE_UP.isPressed = true; return false;
-            case app.KEYCODE_DOWN.code:     app.KEYCODE_DOWN.isPressed = true; return false;
-            case app.KEYCODE_SPACEBAR.code: app.KEYCODE_SPACEBAR.isPressed = true; return false;
-        }
-    },
-        
-    handleKeyUp: function (evt)
-    {
-        if(!evt) { var evt = window.event; }  //browser compatibility
-        
-        switch(evt.keyCode) {
-            case app.KEYCODE_LEFT.code:     app.KEYCODE_LEFT.isPressed = false; break;
-            case app.KEYCODE_RIGHT.code:    app.KEYCODE_RIGHT.isPressed = false; break;
-            case app.KEYCODE_UP.code:       app.KEYCODE_UP.isPressed = false; break;
-            case app.KEYCODE_DOWN.code:     app.KEYCODE_DOWN.isPressed = false; break;
-            case app.KEYCODE_SPACEBAR.code: app.KEYCODE_SPACEBAR.isPressed = false; break;
-        }
     },
 
     // Our game's update function, which will be run every tick at the FPS we specified
@@ -144,8 +115,7 @@ var app = {
         // Particle test code
         for (var i = 0; i < app.particleSystem.length; i++)
         {
-            app.particleSystem[i].update(dt);
-            
+            app.particleSystem[i].update(dt);            
         }
 
         // Update our game to match the state
@@ -245,11 +215,40 @@ var app = {
         }
     },
 
+    handleKeyDown: function(evt)
+    {
+        if(!evt){ var evt = window.event; }  //browser compatibility
+        
+        switch(evt.keyCode) {
+            case app.KEYCODE_LEFT.code:     app.KEYCODE_LEFT.isPressed = true; return false;
+            case app.KEYCODE_RIGHT.code:    app.KEYCODE_RIGHT.isPressed = true; return false;
+            case app.KEYCODE_UP.code:       app.KEYCODE_UP.isPressed = true; return false;
+            case app.KEYCODE_DOWN.code:     app.KEYCODE_DOWN.isPressed = true; return false;
+            case app.KEYCODE_SPACEBAR.code: app.KEYCODE_SPACEBAR.isPressed = true; return false;
+        }
+    },
+        
+    handleKeyUp: function (evt)
+    {
+        if(!evt) { var evt = window.event; }  //browser compatibility
+        
+        switch(evt.keyCode) {
+            case app.KEYCODE_LEFT.code:     app.KEYCODE_LEFT.isPressed = false; break;
+            case app.KEYCODE_RIGHT.code:    app.KEYCODE_RIGHT.isPressed = false; break;
+            case app.KEYCODE_UP.code:       app.KEYCODE_UP.isPressed = false; break;
+            case app.KEYCODE_DOWN.code:     app.KEYCODE_DOWN.isPressed = false; break;
+            case app.KEYCODE_SPACEBAR.code: app.KEYCODE_SPACEBAR.isPressed = false; break;
+        }
+    },
+
     // When the mouse is clicked, pass it on to the appropriate places
     handleMouseDown: function(evt)
     {
         // Play a sound
         audio.playSound("click");
+
+        // Create a burst effect
+        effects.basicBurst(this.mousePos);
 
         if(app.state == "gameplay")
         {
