@@ -30,6 +30,11 @@ var app = {
     //  - mainmenu
     gamestate: "loading",
 
+    // Track the particle emitters
+    // We'll update this in update
+    // Note that since our particles are createjs objects, createjs will do the drawing for us
+    particleSystem: [],
+
     // Track the number of clicks during gameplay
     numClicks: 0,
 
@@ -39,6 +44,9 @@ var app = {
     KEYCODE_RIGHT : { code: 39, isPressed: false},
     KEYCODE_DOWN : { code: 40, isPressed: false},
     KEYCODE_SPACEBAR : { code: 32, isPressed: false},
+
+    // Mouse pos tracker
+    mousePos: {x: 0, y: 0},
 
     // Player Movement Settings
     moveSpeed: 100,
@@ -64,10 +72,9 @@ var app = {
         // Enable and track mouse input
         this.stage.enableMouseOver();
         
-        this.mouseX, this.mouseY;
         this.stage.on("stagemousemove", function(evt) {
-            app.mouseX = Math.floor(evt.stageX);
-            app.mouseY = Math.floor(evt.stageY);
+            app.mousePos.x = Math.floor(evt.stageX);
+            app.mousePos.y = Math.floor(evt.stageY);
             //console.log("Mouse: ( " + app.mouseX + ", " + app.mouseY + " )");
         });
         this.stage.on("stagemousedown", function (evt) {
@@ -87,6 +94,10 @@ var app = {
 
         // Create the first screen
         this.gotoScreen("loading");
+
+        // test particles
+        effects.basicTrail(this.mousePos);
+        
     },
 
     handleKeyDown: function(evt)
@@ -131,8 +142,11 @@ var app = {
         }
 
         // Particle test code
-        //app.ps.position = { x: app.stage.mouseX, y: app.stage.mouseY }; 
-        //app.ps.update(app.stage);
+        for (var i = 0; i < app.particleSystem.length; i++)
+        {
+            app.particleSystem[i].update(dt);
+            
+        }
 
         // Update our game to match the state
         if(app.state == "loading")
