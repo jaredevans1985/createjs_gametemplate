@@ -3,11 +3,14 @@ function Particle () {
 	this.lifetime = 100;
 	this.startingLifetime
 	this.size = 10;
-	this.endScale = {x : 1, y : 1};
+	this.startScale = 1;
+	this.endScale = 0;
 	this.startColor = new RGBA(255,0,0,255);
 	this.endColor = new RGBA(255,0,0,0);
 	this.position = { x: 0, y: 0 };
 	this.velocity = { x: 0, y: 0 };
+	this.rotation = 0;
+	this.rotationRate = 0;
 	this.type = "circle";	// "circle", "square", "bitmap", "sprite"
 	this.imageID = "";
 	this.gradientFill = false;
@@ -63,6 +66,11 @@ function Particle () {
 				this.particleVisual = new createjs.Sprite(assets.getResult(this.imageID));
 			}
 
+			// Set our bounds and registration point
+			this.particleVisual.setBounds(0, 0, this.size, this.size);
+			this.particleVisual.regX = this.particleVisual.getBounds().width / 2;
+			this.particleVisual.regY = this.particleVisual.getBounds().height / 2;
+
 			// Set this up for later lerping!
 			this.startingLifetime = this.lifetime;
 
@@ -76,8 +84,6 @@ function Particle () {
 			app.stage.addChild(this.particleVisual);
 		}
 		
-		
-		
 		// If we don't have a gradient fill, and we're a shape, then we need to clear and redraw the visual each frame
 		// This is not ideal, so if we didn't have to do this each frame, it'd be better
 		if(!this.gradientFill &&  (this.type == "circle" || this.type == "square"))
@@ -86,25 +92,30 @@ function Particle () {
 			this.particleVisual.graphics.beginFill(lerpColor(this.endColor, this.startColor, this.lifetime / this.startingLifetime).str());
 			if(this.type == "square")
 			{
-				this.particleVisual.graphics.drawRect(this.size*2, this.size*2, this.size, this.size);
+				this.particleVisual.graphics.drawRect(0, 0, this.size, this.size);
 			}
 			else
 			{
-				this.particleVisual.graphics.drawCircle(this.size*2, this.size*2, this.size);
+				this.particleVisual.graphics.drawCircle(0, 0, this.size / 2);
 			}
 		}
 
 		// Scale over time
-		var curScale = lerp(0, 1, this.lifetime / this.startingLifetime);
+		var curScale = lerp(this.endScale, this.startScale, this.lifetime / this.startingLifetime);
 		this.particleVisual.scaleX = curScale;
 		this.particleVisual.scaleY = curScale;
 
-		// Adjust for scaling to be centered
-		this.particleVisual.x = this.position.x + ((1 - curScale) * this.particleVisual.getBounds().width * 2);
-		this.particleVisual.y = this.position.y + ((1 - curScale) * this.particleVisual.getBounds().height * 2);
-		
+		// Set our position and rotation
+		this.particleVisual.x = this.position.x;
+		this.particleVisual.y = this.position.y;
+		this.particleVisual.rotation = this.rotation;
+
+		// Update our position
 		this.position.x += this.velocity.x * dt;
 		this.position.y += this.velocity.y * dt;
+
+		// Update our rotation
+		this.rotation += this.rotationRate * dt;
 	};
 	
 	this.dispose = function() {
@@ -118,6 +129,7 @@ function Emitter () {
 	// Emitter settings
 	this.particles = [];
 	this.maxParticleCount = 100;
+	this.emitterRotation = 0;
 	this.positionOffsetX = { min: 0, max: 0 };
 	this.positionOffsetY = { min: 0, max: 0 };
 	this.emitterLifetime = null;
@@ -131,11 +143,14 @@ function Emitter () {
 	this.velocityX = { min: 0, max: 0 };
 	this.velocityY = { min: 0, max: 0 };
 	this.position = { x: 0, y: 0 };
+	this.rotation = { min: 0, max: 0 };
+	this.rotationRate = { min: 0, max: 0 };
 	this.size = { min: 5, max: 10 }
 	this.type = "circle";
 	this.imageID = "";
 	this.gradientFill = false;
-	this.endScale = {x : 0, y : 0};
+	this.startScale = 1;
+	this.endScale = 0;
 
 	this.startColor = {
 		min: new RGBA(200,80,0,125),
@@ -154,7 +169,10 @@ function Emitter () {
 		p.lifetime = rand(this.lifetime.min, this.lifetime.max);
 		p.position = { x: this.position.x + rand(this.positionOffsetX.min, this.positionOffsetX.max),
 					y: this.position.y + rand(this.positionOffsetY.min, this.positionOffsetY.max) };
+		p.rotation = this.emitterRotation + rand(this.rotation.min, this.rotation.max);
+		p.rotationRate = rand(this.rotationRate.min, this.rotationRate.max);
 		p.size = rand(this.size.min, this.size.max);
+		p.startScale = this.startScale;
 		p.endScale = this.endScale;
 		p.velocity = { x: rand(this.velocityX.min, this.velocityX.max),
 					y: rand(this.velocityY.min, this.velocityY.max) }
@@ -288,7 +306,7 @@ var effects = {
 	// 	this.size = { min: 5, max: 10 };		// a range of how big this particle can be (does not apply to sprites)
 	// 	this.type = "circle";	// What kind of particle is it? "circle", "square", "bitmap", "sprite"
 	// 	this.gradientFill = false;	// If true, will use the start and end colors to create a gradient
-	// 	this.endScale = {x : 0, y : 0};	// All particles start at 100% scale and interpolate to this scale
+	// 	this.endScale = 0;	// All particles start at 100% scale and interpolate to this scale
 
 	// 	// A range of colors that this particle will start with
 	// 	this.startColor = {
@@ -316,9 +334,9 @@ var effects = {
         newEmitter.positionOffsetY = { min: -3, max: 3 };
         newEmitter.velocityY = { min: -100, max: 100 };
         newEmitter.velocityX = { min: -100, max: 100 };
-        newEmitter.radius = { min: 30, max: 45 };
+        newEmitter.size = { min: 10, max: 15 };
 		newEmitter.rate = 10;
-		
+
         newEmitter.startColor = {
             min: new RGBA(230,50,0,255),
             max: new RGBA(255,230,0,255)
@@ -338,7 +356,7 @@ var effects = {
 		// Define the settings for this emitter
 		// Because we define a burstCount for this emitter, it will function as a burst
 		// The emitter will automatically kill itself after its particles are dead
-		newEmitter.burstCount = 20;
+		newEmitter.burstCount = 15;
 		newEmitter.lifetime = { min: 1, max: 2 };
 		newEmitter.type = "square";
         newEmitter.position = position;
@@ -346,8 +364,12 @@ var effects = {
         newEmitter.positionOffsetY = { min: -3, max: 3 };
         newEmitter.velocityY = { min: -100, max: 100 };
         newEmitter.velocityX = { min: -100, max: 100 };
-		newEmitter.radius = { min: 30, max: 45 };
-		
+		newEmitter.size = { min: 10, max: 15 };
+		newEmitter.emitterRotation = 45;
+		newEmitter.rotation = { min: 0, max: 360 };
+		newEmitter.rotationRate = { min: 90, max: 180 };
+		newEmitter.endScale = 0.75;
+
         newEmitter.startColor = {
             min: new RGBA(0,50,230,255),
             max: new RGBA(0,230,255,255)
