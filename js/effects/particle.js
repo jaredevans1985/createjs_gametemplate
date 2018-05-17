@@ -8,9 +8,10 @@ function Particle () {
 	this.endColor = new RGBA(255,0,0,0);
 	this.position = { x: 0, y: 0 };
 	this.velocity = { x: 0, y: 0 };
-	this.type = "circle";	// "circle", "square"
+	this.type = "circle";	// "circle", "square", "bitmap", "sprite"
+	this.imageID = "";
 	this.gradientFill = false;
-	this.shape = null;
+	this.particleVisual = null;
 	
 	this.isDead = function() {
 		var isDead = this.lifetime <= 0 || (this.shape != null && this.shape.scale <= 0) ;
@@ -22,77 +23,92 @@ function Particle () {
 		this.lifetime -= 1* dt;
 
 		// initial setup
-		if (this.shape == null) {
-			this.shape = new createjs.Shape();
-			this.shape.setBounds(0, 0, this.size, this.size);
+		// First, if this is a shape, set up the shape
+		if (this.particleVisual == null)
+		{
+			if(this.type == "circle" || this.type == "square")
+			{
+
+				this.particleVisual = new createjs.Shape();
+				this.particleVisual.setBounds(0, 0, this.size, this.size);
+				
+				// If we're using our start and end colors for a gradient, do that once here
+				if (this.gradientFill)
+				{
+					if(this.type == "square")
+					{
+						this.particleVisual.graphics.beginLinearGradientFill([this.startColor.str(), this.endColor.str()], [0, 1], this.size*2, this.size*2, 0, this.size*2, this.size*2, this.size);
+					}
+					else
+					{
+						this.particleVisual.graphics.beginRadialGradientFill([this.startColor.str(), this.endColor.str()], [0, 1], this.size*2, this.size*2, 0, this.size*2, this.size*2, this.size);
+					}
+
+					if(this.type == "square")
+					{
+						this.particleVisual.graphics.drawRect(0, 0, this.size, this.size);
+					}
+					else
+					{
+						this.particleVisual.graphics.drawCircle(0, 0, this.size / 2);
+					}
+				}
+			}
+			else if (this.type == "bitmap" && this.imageID != "")
+			{
+				this.particleVisual = new createjs.Bitmap(assets.getResult(this.imageID));
+			}
+			else if (this.type == "sprite" && this.imageID != "")
+			{
+				this.particleVisual = new createjs.Sprite(assets.getResult(this.imageID));
+			}
 
 			// Set this up for later lerping!
 			this.startingLifetime = this.lifetime;
 
-			// If we're using our start and end colors for a gradient, do that once here
-			if (this.gradientFill)
-			{
-				if(this.type == "square")
-				{
-					this.shape.graphics.beginLinearGradientFill([this.startColor.str(), this.endColor.str()], [0, 1], this.size*2, this.size*2, 0, this.size*2, this.size*2, this.size);
-				}
-				else
-				{
-					this.shape.graphics.beginRadialGradientFill([this.startColor.str(), this.endColor.str()], [0, 1], this.size*2, this.size*2, 0, this.size*2, this.size*2, this.size);
-				}
-
-				if(this.type == "square")
-				{
-					this.shape.graphics.drawRect(0, 0, this.size, this.size);
-				}
-				else
-				{
-					this.shape.graphics.drawCircle(0, 0, this.size / 2);
-				}
-			}
-
 			// Set up any alpha fade and scaling over time
-			createjs.Tween.get(this.shape)
+			createjs.Tween.get(this.particleVisual)
 				.to({ alpha: this.startColor.a, useTicks: true });
 
-			createjs.Tween.get(this.shape)
+			createjs.Tween.get(this.particleVisual)
 				.to({ alpha: this.endColor.a, useTicks: true }, this.lifetime * 1000);
 
-			app.stage.addChild(this.shape);
+			app.stage.addChild(this.particleVisual);
 		}
 		
 		
-		// If we don't have a gradient fill, then we need to clear and redraw the shape each frame
+		
+		// If we don't have a gradient fill, and we're a shape, then we need to clear and redraw the visual each frame
 		// This is not ideal, so if we didn't have to do this each frame, it'd be better
-		if(!this.gradientFill)
+		if(!this.gradientFill &&  (this.type == "circle" || this.type == "square"))
 		{
-			this.shape.graphics.clear();
-			this.shape.graphics.beginFill(lerpColor(this.endColor, this.startColor, this.lifetime / this.startingLifetime).str());
+			this.particleVisual.graphics.clear();
+			this.particleVisual.graphics.beginFill(lerpColor(this.endColor, this.startColor, this.lifetime / this.startingLifetime).str());
 			if(this.type == "square")
 			{
-				this.shape.graphics.drawRect(this.size*2, this.size*2, this.size, this.size);
+				this.particleVisual.graphics.drawRect(this.size*2, this.size*2, this.size, this.size);
 			}
 			else
 			{
-				this.shape.graphics.drawCircle(this.size*2, this.size*2, this.size);
+				this.particleVisual.graphics.drawCircle(this.size*2, this.size*2, this.size);
 			}
 		}
 
 		// Scale over time
 		var curScale = lerp(0, 1, this.lifetime / this.startingLifetime);
-		this.shape.scaleX = curScale;
-		this.shape.scaleY = curScale;
+		this.particleVisual.scaleX = curScale;
+		this.particleVisual.scaleY = curScale;
 
 		// Adjust for scaling to be centered
-		this.shape.x = this.position.x + ((1 - curScale) * this.shape.getBounds().width * 2);
-		this.shape.y = this.position.y + ((1 - curScale) * this.shape.getBounds().height * 2);
+		this.particleVisual.x = this.position.x + ((1 - curScale) * this.particleVisual.getBounds().width * 2);
+		this.particleVisual.y = this.position.y + ((1 - curScale) * this.particleVisual.getBounds().height * 2);
 		
 		this.position.x += this.velocity.x * dt;
 		this.position.y += this.velocity.y * dt;
 	};
 	
 	this.dispose = function() {
-		app.stage.removeChild(this.shape);
+		app.stage.removeChild(this.particleVisual);
 	};
 }
 
@@ -117,6 +133,7 @@ function Emitter () {
 	this.position = { x: 0, y: 0 };
 	this.size = { min: 5, max: 10 }
 	this.type = "circle";
+	this.imageID = "";
 	this.gradientFill = false;
 	this.endScale = {x : 0, y : 0};
 
@@ -146,6 +163,7 @@ function Emitter () {
 		p.endColor = randColor(this.endColor.min, this.endColor.max);
 		
 		p.type = this.type;
+		p.imageID = this.imageID;
 		p.gradientFill = this.gradientFill;
 
 		this.particles.push(p);
@@ -268,7 +286,7 @@ var effects = {
 	// 	this.velocityX = { min: 0, max: 0 };	// a range x velocity assigned randomly on creation
 	// 	this.velocityY = { min: 0, max: 0 };	// a range y velocity assigned randomly on creation		
 	// 	this.size = { min: 5, max: 10 };		// a range of how big this particle can be (does not apply to sprites)
-	// 	this.type = "circle";	// What kind of particle is it? "circle", "square"
+	// 	this.type = "circle";	// What kind of particle is it? "circle", "square", "bitmap", "sprite"
 	// 	this.gradientFill = false;	// If true, will use the start and end colors to create a gradient
 	// 	this.endScale = {x : 0, y : 0};	// All particles start at 100% scale and interpolate to this scale
 
@@ -293,13 +311,14 @@ var effects = {
 
 		// Define the settings for this emitter
 		newEmitter.lifetime = { min: 1, max: 2 };
-        newEmitter.position = app.mousePos;
+        newEmitter.position = position;
         newEmitter.positionOffsetX = { min: -3, max: 3 };
         newEmitter.positionOffsetY = { min: -3, max: 3 };
         newEmitter.velocityY = { min: -100, max: 100 };
         newEmitter.velocityX = { min: -100, max: 100 };
         newEmitter.radius = { min: 30, max: 45 };
-        newEmitter.rate = 10;
+		newEmitter.rate = 10;
+		
         newEmitter.startColor = {
             min: new RGBA(230,50,0,255),
             max: new RGBA(255,230,0,255)
@@ -322,17 +341,45 @@ var effects = {
 		newEmitter.burstCount = 20;
 		newEmitter.lifetime = { min: 1, max: 2 };
 		newEmitter.type = "square";
-        newEmitter.position = app.mousePos;
+        newEmitter.position = position;
         newEmitter.positionOffsetX = { min: -3, max: 3 };
         newEmitter.positionOffsetY = { min: -3, max: 3 };
         newEmitter.velocityY = { min: -100, max: 100 };
         newEmitter.velocityX = { min: -100, max: 100 };
-        newEmitter.radius = { min: 30, max: 45 };
+		newEmitter.radius = { min: 30, max: 45 };
+		
         newEmitter.startColor = {
             min: new RGBA(0,50,230,255),
             max: new RGBA(0,230,255,255)
         };
         
+        newEmitter.endColor = {
+            min: new RGBA(255,255,255,0),
+            max: new RGBA(255,255,255,0)
+        };
+	},
+
+	basicImageParticleStream: function(position)
+	{
+		// Get a new emitter
+		var newEmitter = this.getNewEmitter();
+
+		// Define the settings for this emitter
+		// This particle uses an image
+		// The type must be set to either "bitmap" or "sprite"
+		// You must then provide a valid asset ID
+		newEmitter.type = "bitmap";
+		newEmitter.imageID = "particle";
+		newEmitter.lifetime = { min: 1, max: 2 };
+        newEmitter.position = position;
+        newEmitter.positionOffsetX = { min: -3, max: 3 };
+        newEmitter.positionOffsetY = { min: -3, max: 3 };
+        newEmitter.velocityY = { min: -100, max: 100 };
+        newEmitter.velocityX = { min: -100, max: 100 };
+        newEmitter.radius = { min: 30, max: 45 };
+		newEmitter.rate = 10;
+		
+		// Note: even though we don't need a color, the alpha value is used to fade the image
         newEmitter.endColor = {
             min: new RGBA(255,255,255,0),
             max: new RGBA(255,255,255,0)

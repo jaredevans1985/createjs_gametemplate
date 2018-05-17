@@ -3,7 +3,7 @@ class Actor {
     {
         // create and parent the image
         
-        if(type == "image")
+        if(type == "bitmap")
         {
             this._image = new createjs.Bitmap(assets.getResult(imageID));
         }
@@ -16,12 +16,16 @@ class Actor {
         // Set the name
         this._name = name;
 
+        // Set the position and rotation
+        this._position = {x: x, y: y};
+        this._rotation = rotation;
+
         // Set the atributes of the image
-        this._image.x = x;
-        this._image.y = y;
+        this._image.x = this._position.x;
+        this._image.y = this._position.y;
         this._image.scaleX = scaleX;
         this._image.scaleY = scaleY;
-        this._image.rotation = rotation;    // degrees
+        this._image.rotation = this._rotation;    // degrees
         this._image.regX = this._image.getBounds().width/2;
         this._image.regY = this._image.getBounds().height/2;
     }
@@ -32,21 +36,13 @@ class Actor {
     get name() { return this._name; }
     set name(n) { this._name = n; }
 
-    setPosition(x, y)
-    {
-        this._image.x = x;
-        this._image.y = y;
-    }
+    get position() { return this._position; }
+    set position(p) { this._position = p; }
 
     addPosition(x, y)
     {
-        this._image.x += x;
-        this._image.y += y;
-    }
-
-    getPosition()
-    {
-        return { x: this._image.x, y: this._image.y };
+        this._position.x += x;
+        this._position.y += y;
     }
 
     setScale(scaleX, scaleY)
@@ -55,34 +51,30 @@ class Actor {
         this._image.scaleY = scaleY;
     }
     
-    setRotation(rotation)
-    {
-        this._image.rotation = rotation;    // degrees
-    }
+    get rotation() { return this._rotation; }
+    set rotation(r) { this._rotation = r; }
 
-    getRotation()
-    {
-        return this._image.rotation;    // degrees
-    }
-    
     getRotationRadians()
     {
-        return this._image.rotation / 360 * 2 * math.PI;    // degrees
+        return this._rotation / 360 * 2 * math.PI;    // degrees
     }
 
     addRotation(rotation)
     {
-        this._image.rotation += rotation;    // degrees
+        this._rotation += rotation;    // degrees
     }
 
     update(dt)
     {
-
+        // Update our position and rotation
+        this._image.x = this._position.x;
+        this._image.y = this._position.y;
+        this._image.rotation = this._rotation;
     }
 
     draw(dt)
     {
-
+        // Any special draw code we need
     }
 
 }

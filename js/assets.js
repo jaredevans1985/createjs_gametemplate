@@ -23,6 +23,10 @@ var assets = {
                 id: "click"
             },
             {
+                src: "images/particle.png",
+                id: "particle"
+            },
+            {
                 src: "images/pig.png",
                 id: "pig"
             },

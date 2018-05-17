@@ -106,7 +106,7 @@ var app = {
         app.stage.update();  //updates the stage
         app.screen.update(dt); // update the current screen
 
-        //Update all of our game objects
+        // Update all of our game objects
         for (var i = 0; i < app.gameObjects.length; i++)
         {
             app.gameObjects[i].update(dt);
@@ -260,7 +260,9 @@ var app = {
 
     resetGame: function()
     {
-        app.player = new Actor(app.stage, "image", "pig", "player", app.SCREEN_WIDTH / 2, app.SCREEN_HEIGHT /2, 0.5, 0.5);
+        app.player = new Actor(app.stage, "bitmap", "pig", "player", app.SCREEN_WIDTH / 2, app.SCREEN_HEIGHT /2, 0.5, 0.5);
+        app.gameObjects.push(app.player);
+        effects.basicImageParticleStream(app.player.position);
     },
 
 }
