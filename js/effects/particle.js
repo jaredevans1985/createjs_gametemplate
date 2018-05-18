@@ -84,10 +84,10 @@ function Particle () {
 			// Set this up for later lerping!
 			this.startingLifetime = this.lifetime;
 
+			// Set the initial alpha
+			this.particleVisual.alpha = this.startColor.a;
+			console.log(this.startColor.a);
 			// Set up our alpha fade over time using tweens
-			createjs.Tween.get(this.particleVisual)
-				.to({ alpha: this.startColor.a, useTicks: true });
-
 			createjs.Tween.get(this.particleVisual)
 				.to({ alpha: this.endColor.a, useTicks: true }, this.lifetime * 1000);
 
@@ -427,18 +427,24 @@ var effects = {
 		// You must then provide a valid asset ID
 		newEmitter.type = "bitmap";
 		newEmitter.imageID = "particle";
-		newEmitter.lifetime = { min: 1, max: 2 };
+		newEmitter.lifetime = { min: 10, max: 2 };
         newEmitter.position = position;
         newEmitter.positionOffsetX = { min: -3, max: 3 };
         newEmitter.positionOffsetY = { min: -3, max: 3 };
         newEmitter.velocityY = { min: -100, max: 100 };
         newEmitter.velocityX = { min: -100, max: 100 };
         newEmitter.radius = { min: 30, max: 45 };
-		newEmitter.rate = 10;
+		newEmitter.rate = 1;
 		newEmitter.rotation = { min: 0, max: 360 };
 		newEmitter.rotationRate = { min: 90, max: 180 };
-		
+		newEmitter.startScale = 3;
+
 		// Note: even though we don't need a color, the alpha value is used to fade the image
+		newEmitter.startColor = {
+            min: new RGBA(255,255,255,0.5),
+            max: new RGBA(255,255,255,0.5)
+		};
+		
         newEmitter.endColor = {
             min: new RGBA(255,255,255,0),
             max: new RGBA(255,255,255,0)

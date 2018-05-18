@@ -15,10 +15,6 @@ var assets = {
         // We can consider making a seperate JSON file that has all of this info in it
         manifest = [
             {
-                src: "audio/music.mp3",
-                id: "music"
-            },
-            {
                 src: "audio/click.mp3",
                 id: "click"
             },
@@ -35,6 +31,10 @@ var assets = {
                 id:"soundui",
                 type:"spritesheet",
                 crossOrigin:true
+            },
+            {
+                src: "audio/music.mp3",
+                id: "music"
             },
         ];
 
@@ -74,7 +74,7 @@ var assets = {
     loadProgress(event)
     {
         // event.loaded gives us the percentage of our load
-        this.loadPercentage = event.loaded;
+        assets.loadPercentage = event.loaded / event.total;
     },
 
     // Return a result from queue (will return 'null' if no result was found with that ID)

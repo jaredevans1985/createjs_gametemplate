@@ -15,12 +15,17 @@ class LoadingScreen extends ScreenBase
         this.fillbar = new createjs.Shape();
         this.fillbar.graphics.beginFill(ui.colors.light).drawRect(app.SCREEN_WIDTH /2 - 100, app.SCREEN_HEIGHT /2 + 25, 0, 40);
         this.addChild(this.fillbar);
+
+        // Add Percentage Text
+        this.percentText = ui.makeText(this, ((assets.loadPercentage * 100) + "%"), app.SCREEN_WIDTH /2 + 5, app.SCREEN_HEIGHT /2 + 45, ui.defaultFont.font, ui.defaultFont.color);
      }
 
      updateFillbar(percent)
      {
         this.fillbar.graphics.beginFill(ui.colors.light).drawRect(app.SCREEN_WIDTH /2 - 100, app.SCREEN_HEIGHT /2 + 25, 200 * percent, 40);
-     }
+        var nicePercent = (assets.loadPercentage * 100) | 0;
+        this.percentText.text = nicePercent + "%";
+    }
 
      update(dt)
      {
