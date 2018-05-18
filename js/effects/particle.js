@@ -288,6 +288,14 @@ var effects = {
 		return newEmitter;
 	},
 
+	// Clear all particles from the particle system
+	clearAllParticles: function()
+	{
+		app.particleSystem.forEach(emitter => {
+			emitter.kill();
+		});
+	},
+
 	// Example emitter creator function
 	// --------------
 	//

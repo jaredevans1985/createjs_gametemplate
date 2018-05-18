@@ -28,6 +28,7 @@ var app = {
     //  - loading
     //  - gameplay
     //  - mainmenu
+    //  - gameover
     gamestate: "loading",
 
     // Track the particle emitters
@@ -37,6 +38,7 @@ var app = {
 
     // Track the number of clicks during gameplay
     numClicks: 0,
+    maxClicks: 15,
 
     // Keyboard input info
     KEYCODE_LEFT : { code: 37, isPressed: false},
@@ -191,22 +193,32 @@ var app = {
         switch(screenType)
         {
             case "loading":
+            effects.clearAllParticles();
             this.screen.removeAllChildren();
             this.screen = new LoadingScreen();
             this.state = "loading";
             break;
 
             case "mainmenu":
+            effects.clearAllParticles();
             this.screen.removeAllChildren();
             this.screen = new MainMenu();
             this.state = "mainmenu";
             break;
 
             case "gameplay":
+            effects.clearAllParticles();
             this.screen.removeAllChildren();
             this.screen = new GameScreen();
             this.state = "gameplay";
             this.resetGame();
+            break;
+
+            case "gameover":
+            effects.clearAllParticles();
+            this.screen.removeAllChildren();
+            this.screen = new EndScreen();
+            this.state = "gameover";
             break;
 
             default:
@@ -250,16 +262,24 @@ var app = {
         // Create a burst effect
         effects.basicBurst(this.mousePos);
 
+        // If we're in the game, track the number of clicks
         if(app.state == "gameplay")
         {
             app.numClicks++;
 
-            app.screen.clickUI.text = "NumClicks: " + app.numClicks;
+            app.screen.clickUI.text = "NumClicks: " + app.numClicks + "/" + app.maxClicks;
+
+            // If we've hit the max, end the game
+            if(app.numClicks >= app.maxClicks)
+            {
+                app.gotoScreen("gameover");
+            }
         }
     },
 
     resetGame: function()
     {
+        app.numClicks = 0;
         app.player = new Actor(app.stage, "bitmap", "pig", "player", app.SCREEN_WIDTH / 2, app.SCREEN_HEIGHT /2, 0.5, 0.5);
         app.gameObjects.push(app.player);
         effects.basicImageParticleStream(app.player.position);
