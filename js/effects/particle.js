@@ -25,15 +25,14 @@ function Particle () {
 
 		this.lifetime -= 1* dt;
 
-		// initial setup
+		// Initial setup (only run once)
 		// First, if this is a shape, set up the shape
 		if (this.particleVisual == null)
 		{
 			if(this.type == "circle" || this.type == "square")
 			{
-
+				// If we're here, make a new shape
 				this.particleVisual = new createjs.Shape();
-				this.particleVisual.setBounds(0, 0, this.size, this.size);
 				
 				// If we're using our start and end colors for a gradient, do that once here
 				if (this.gradientFill)
@@ -67,7 +66,10 @@ function Particle () {
 			}
 
 			// Set our bounds and registration point
-			this.particleVisual.setBounds(0, 0, this.size, this.size);
+			if(this.particleVisual.getBounds() == null) // Bitmaps and Sprites already have bounds
+			{
+				this.particleVisual.setBounds(0, 0, this.size, this.size);
+			}
 			this.particleVisual.regX = this.particleVisual.getBounds().width / 2;
 			this.particleVisual.regY = this.particleVisual.getBounds().height / 2;
 
@@ -400,6 +402,8 @@ var effects = {
         newEmitter.velocityX = { min: -100, max: 100 };
         newEmitter.radius = { min: 30, max: 45 };
 		newEmitter.rate = 10;
+		newEmitter.rotation = { min: 0, max: 360 };
+		newEmitter.rotationRate = { min: 90, max: 180 };
 		
 		// Note: even though we don't need a color, the alpha value is used to fade the image
         newEmitter.endColor = {
