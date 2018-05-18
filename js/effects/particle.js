@@ -13,6 +13,7 @@ function Particle () {
 	this.rotationRate = 0;
 	this.type = "circle";	// "circle", "square", "bitmap", "sprite"
 	this.imageID = "";
+	this.animID = "";		// Only used for "sprite" types
 	this.gradientFill = false;
 	this.particleVisual = null;
 	
@@ -26,12 +27,12 @@ function Particle () {
 		this.lifetime -= 1* dt;
 
 		// Initial setup (only run once)
-		// First, if this is a shape, set up the shape
 		if (this.particleVisual == null)
 		{
+			// If this is a shape, set up the shape
 			if(this.type == "circle" || this.type == "square")
 			{
-				// If we're here, make a new shape
+				// Make a new shape
 				this.particleVisual = new createjs.Shape();
 				
 				// If we're using our start and end colors for a gradient, do that once here
@@ -56,13 +57,20 @@ function Particle () {
 					}
 				}
 			}
-			else if (this.type == "bitmap" && this.imageID != "")
+			// If this isn't a shape, but a bitmap, create it here
+			// Note: this.imageID must be valid
+			else if (this.type == "bitmap")
 			{
 				this.particleVisual = new createjs.Bitmap(assets.getResult(this.imageID));
 			}
-			else if (this.type == "sprite" && this.imageID != "")
+			// If this isn't a shape or a bitmap, but a sprite from a spritemap, create it here
+			// Note: this.imageID must be valid
+			else if (this.type == "sprite")
 			{
 				this.particleVisual = new createjs.Sprite(assets.getResult(this.imageID));
+
+				// Play the specified animation for this sprite
+				this.particleVisual.gotoAndPlay(this.animID);
 			}
 
 			// Set our bounds and registration point
@@ -76,7 +84,7 @@ function Particle () {
 			// Set this up for later lerping!
 			this.startingLifetime = this.lifetime;
 
-			// Set up any alpha fade and scaling over time
+			// Set up our alpha fade over time using tweens
 			createjs.Tween.get(this.particleVisual)
 				.to({ alpha: this.startColor.a, useTicks: true });
 
@@ -86,12 +94,14 @@ function Particle () {
 			app.stage.addChild(this.particleVisual);
 		}
 		
-		// If we don't have a gradient fill, and we're a shape, then we need to clear and redraw the visual each frame
-		// This is not ideal, so if we didn't have to do this each frame, it'd be better
+		// If we don't have a gradient fill, and we're a shape, then we need to clear 
+		// and redraw the visual each frame.
+		// This is not ideal, so if we didn't have to do this each frame, it'd be better no to.
 		if(!this.gradientFill &&  (this.type == "circle" || this.type == "square"))
 		{
 			this.particleVisual.graphics.clear();
 			this.particleVisual.graphics.beginFill(lerpColor(this.endColor, this.startColor, this.lifetime / this.startingLifetime).str());
+			
 			if(this.type == "square")
 			{
 				this.particleVisual.graphics.drawRect(0, 0, this.size, this.size);
@@ -120,6 +130,7 @@ function Particle () {
 		this.rotation += this.rotationRate * dt;
 	};
 	
+	// Remove this object from the stage
 	this.dispose = function() {
 		app.stage.removeChild(this.particleVisual);
 	};
@@ -148,8 +159,9 @@ function Emitter () {
 	this.rotation = { min: 0, max: 0 };
 	this.rotationRate = { min: 0, max: 0 };
 	this.size = { min: 5, max: 10 }
-	this.type = "circle";
-	this.imageID = "";
+	this.type = "circle";	// "circle", "square", "bitmap", "sprite"
+	this.imageID = "";		// only used if type is "bitmap" or "sprite", must be valid preloaded asset id
+	this.animID = "";		// only used if type is "sprite"
 	this.gradientFill = false;
 	this.startScale = 1;
 	this.endScale = 0;
@@ -164,7 +176,7 @@ function Emitter () {
 		max: new RGBA(255,0,0,0)
 	};
 	
-	// make a particle based on our settings
+	// Make a particle based on our settings
 	this.spawnParticle = function()
 	{
 		var p = new Particle();
@@ -184,11 +196,13 @@ function Emitter () {
 		
 		p.type = this.type;
 		p.imageID = this.imageID;
+		p.animID = this.animID;
 		p.gradientFill = this.gradientFill;
 
 		this.particles.push(p);
 	}
 
+	// This is the update function for our emitter
 	this.update = function(dt) {
 		
 		// Update each of our particles, and clean them up if they're dead
@@ -225,6 +239,7 @@ function Emitter () {
 			this.spawnParticle();
 		}
 		// If we're here, create the first particle for our stream
+		// Otherwise the stream wouldn't spawn a particle right away
 		else if (!this.hasSpawnedAParticle)
 		{
 			this.hasSpawnedAParticle = true;
@@ -248,6 +263,7 @@ function Emitter () {
 		}
 	};
 
+	// When called, this function kills all of the particles for this emitter, and then destroys the emitter
 	this.kill = function()
 	{
 		this.particles.forEach(function(p,i,array) {
@@ -294,36 +310,43 @@ var effects = {
 	// 	this.position = { x: 0, y: 0 };	// Where this emitter is, used as origin for particles
 	// 	this.positionOffsetX = { min: 0, max: 0 };	// a range for how far from the emitter origin a particle can spawn
 	// 	this.positionOffsetY = { min: 0, max: 0 };	// a range for how far from the emitter origin a particle can spawn
+	//	this.emitterRotation = 0;	// The rotation of this emitter, applied to particles spawned from it
 	// 	this.emitterLifetime = null;	// If this is set to a value, how many seconds should this emitter exist
 	// 	this.rate = 1;	// The rate at which this emitter spawns particles
 	// 	this.burstCount = 0; 	// NOTE: If this is set, this emitter functions as a burst,
 	// 							// spawning the number of particles in burst count at once,
 	// 							// and dies when all of its particles are dead. It will not
 	// 							// have the standard before of other emitters
-
+	//
 	// 	// Particle settings
 	// 	this.lifetime = { min: 1, max: 2 };		// a range of how long in seconds a particle can exist
-	// 	this.velocityX = { min: 0, max: 0 };	// a range x velocity assigned randomly on creation
-	// 	this.velocityY = { min: 0, max: 0 };	// a range y velocity assigned randomly on creation		
+	// 	this.velocityX = { min: 0, max: 0 };	// a range for x velocity assigned randomly on creation
+	// 	this.velocityY = { min: 0, max: 0 };	// a range for y velocity assigned randomly on creation		
+	//	this.rotation = { min: 0, max: 0 };		// a range for initial rotation (degrees)
+	//	this.rotationRate = { min: 0, max: 0 };	// a range for the rate of rotation each frame (degrees)
 	// 	this.size = { min: 5, max: 10 };		// a range of how big this particle can be (does not apply to sprites)
 	// 	this.type = "circle";	// What kind of particle is it? "circle", "square", "bitmap", "sprite"
+	//	this.imageID = "";		// Only used if type is "bitmap" or "sprite", used to get the image result from assets
+	//	this.animID = "";		// Only used if type is "sprite"
 	// 	this.gradientFill = false;	// If true, will use the start and end colors to create a gradient
-	// 	this.endScale = 0;	// All particles start at 100% scale and interpolate to this scale
-
+	// 	this.startScale = 1;	// What scale these particles start at (1 = 100%)
+	// 	this.endScale = 0;	// What scale these particles will interpolate to over their lifetime (1 = 100%)
+	//
 	// 	// A range of colors that this particle will start with
 	// 	this.startColor = {
 	// 		min: new RGBA(200,80,0,125),
 	// 		max: new RGBA(255,160,0,125)
 	// 	};
-		
+	//	
 	// 	// A range of colors that this particle will end with
 	// 	this.endColor = {
 	// 		min: new RGBA(220,0,0,0),
 	// 		max: new RGBA(255,0,0,0)
 	// 	};
-
+	//
 	// },
 
+	// This is a basic emitter that constantly creates particles at a given rate
 	basicStream: function(position)
 	{
 		// Get a new emitter
@@ -350,6 +373,7 @@ var effects = {
         };
 	},
 
+	// A basic burst that creates a given number of particles all at once and dies when those particles do
 	basicBurst: function(position)
 	{
 		// Find where our new emitter should go and create it
@@ -383,6 +407,7 @@ var effects = {
         };
 	},
 
+	// A basic image particle stream that uses a preloaded bitmap image instead of a shape
 	basicImageParticleStream: function(position)
 	{
 		// Get a new emitter
