@@ -26,8 +26,13 @@ class Actor {
         this._image.scaleX = scaleX;
         this._image.scaleY = scaleY;
         this._image.rotation = this._rotation;    // degrees
-        this._image.regX = this._image.getBounds().width/2;
-        this._image.regY = this._image.getBounds().height/2;
+
+        // Set a central reg x point (only need to do this for bitmaps)
+        if(type == "bitmap")
+        {
+            this._image.regX = this._image.getBounds().width/2;
+            this._image.regY = this._image.getBounds().height/2;
+        }
     }
 
     get image() { return this._image; }
@@ -62,6 +67,22 @@ class Actor {
     addRotation(rotation)
     {
         this._rotation += rotation;    // degrees
+    }
+
+    playAnimation(animID, gotoAndStop = false)
+    {
+        if(gotoAndStop)
+        {
+            this._image.gotoAndStop(animID);
+        }
+        else
+        {
+            // Only play if we aren't already playing
+            if(this._image.currentAnimation != animID)
+            {
+                this._image.gotoAndPlay(animID);
+            }
+        }        
     }
 
     update(dt)

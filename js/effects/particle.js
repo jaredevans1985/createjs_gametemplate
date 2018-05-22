@@ -86,7 +86,7 @@ function Particle () {
 
 			// Set the initial alpha
 			this.particleVisual.alpha = this.startColor.a;
-			console.log(this.startColor.a);
+
 			// Set up our alpha fade over time using tweens
 			createjs.Tween.get(this.particleVisual)
 				.to({ alpha: this.endColor.a, useTicks: true }, this.lifetime * 1000);
@@ -434,10 +434,10 @@ var effects = {
         newEmitter.velocityY = { min: -100, max: 100 };
         newEmitter.velocityX = { min: -100, max: 100 };
         newEmitter.radius = { min: 30, max: 45 };
-		newEmitter.rate = 1;
+		newEmitter.rate = 10;
 		newEmitter.rotation = { min: 0, max: 360 };
 		newEmitter.rotationRate = { min: 90, max: 180 };
-		newEmitter.startScale = 3;
+		newEmitter.startScale = 0.5;
 
 		// Note: even though we don't need a color, the alpha value is used to fade the image
 		newEmitter.startColor = {

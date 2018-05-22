@@ -105,7 +105,7 @@ var app = {
         // Calculate our delta time
         var dt = event.delta / 1000;
 
-        app.stage.update();  //updates the stage
+        app.stage.update(event);  //updates the stage
         app.screen.update(dt); // update the current screen
 
         // Update all of our game objects
@@ -131,6 +131,8 @@ var app = {
         }
         else if (app.state == "gameplay")
         {
+            var hasMoved = false;
+
             //console.log("We're playing");
             if(app.KEYCODE_LEFT.isPressed)
             {
@@ -147,6 +149,8 @@ var app = {
                 var posX = app.moveSpeed * dt * math.cos(app.player.getRotationRadians());
                 var posY = app.moveSpeed * dt * math.sin(app.player.getRotationRadians());
                 app.player.addPosition(posX,posY);
+
+                hasMoved = true;
             }
 
             if(app.KEYCODE_DOWN.isPressed)
@@ -154,6 +158,16 @@ var app = {
                 var posX = app.moveSpeed * dt * math.cos(app.player.getRotationRadians());
                 var posY = app.moveSpeed * dt * math.sin(app.player.getRotationRadians());
                 app.player.addPosition(-posX,-posY);
+                hasMoved = true;
+            }
+
+            // Start and stop the walking animation as needed
+            if (hasMoved)
+            {
+                app.player.playAnimation("walk");
+            }
+            else{
+                app.player.playAnimation("idle");
             }
 
         }
@@ -280,7 +294,8 @@ var app = {
     resetGame: function()
     {
         app.numClicks = 0;
-        app.player = new Actor(app.stage, "bitmap", "pig", "player", app.SCREEN_WIDTH / 2, app.SCREEN_HEIGHT /2, 0.5, 0.5);
+        app.player = new Actor(app.stage, "sprite", "pig", "player", app.SCREEN_WIDTH / 2, app.SCREEN_HEIGHT /2, 0.5, 0.5);
+        app.player.playAnimation("idle", true);
         app.gameObjects.push(app.player);
         effects.basicImageParticleStream(app.player.position);
     },

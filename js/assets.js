@@ -23,8 +23,10 @@ var assets = {
                 id: "particle"
             },
             {
-                src: "images/pig.png",
-                id: "pig"
+                src: "images/pigsheet.json",
+                id:"pig",
+                type:"spritesheet",
+                crossOrigin:true
             },
             {
                 src: "images/ui/soundbuttons.json",
@@ -67,7 +69,8 @@ var assets = {
     // When an individual file is loaded, call this function
     fileLoaded(event)
     {
-        // event.result is the final object that was created after loading    
+        // event.result is the final object that was created after loading 
+        //console.log(event.result);   
     },
 
     // Updates us on the progress of a load
