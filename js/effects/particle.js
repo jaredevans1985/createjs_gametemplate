@@ -78,8 +78,13 @@ function Particle () {
 			{
 				this.particleVisual.setBounds(0, 0, this.size, this.size);
 			}
-			this.particleVisual.regX = this.particleVisual.getBounds().width / 2;
-			this.particleVisual.regY = this.particleVisual.getBounds().height / 2;
+
+			// Don't do this for spritesheets should have a registration point already
+			if(this.type != "sprite")
+			{
+				this.particleVisual.regX = this.particleVisual.getBounds().width / 2;
+				this.particleVisual.regY = this.particleVisual.getBounds().height / 2;
+			}
 
 			// Set this up for later lerping!
 			this.startingLifetime = this.lifetime;
