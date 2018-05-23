@@ -14,8 +14,10 @@ var app = {
     SCREEN_HEIGHT: 600,
     screen: null,
 
-    // Keep track of the elapsed game time and frame count
-    elapsedTime: 0,
+    // Keep track of the game time
+    elapsedTime: 0, // total app time
+    gameTime: 0, // time for this session, reset when entering game
+    maxGameTime: 5, // when does the game end
 
     // Game Settings
     FPS: 30,
@@ -36,9 +38,9 @@ var app = {
     // Note that since our particles are createjs objects, createjs will do the drawing for us
     particleSystem: [],
 
-    // Track the number of clicks during gameplay
-    numClicks: 0,
-    maxClicks: 15,
+    // Track score
+    score: 0,
+    pointsPerClick: 10,
 
     // Keyboard input info
     KEYCODE_LEFT : { code: 37, isPressed: false},
@@ -105,6 +107,9 @@ var app = {
         // Calculate our delta time
         var dt = event.delta / 1000;
 
+        // Track the elapsed time
+        app.elapsedTime += dt;
+
         app.stage.update(event);  //updates the stage
         app.screen.update(dt); // update the current screen
 
@@ -123,17 +128,25 @@ var app = {
         // Update our game to match the state
         if(app.state == "loading")
         {
-            // If we're loading, update the screen fillbar
+            // Anything specific in the loading state
         }
         else if (app.state == "mainmenu")
         {
-            //console.log("We're playing");
+            // Anything specific in the main menu state
         }
         else if (app.state == "gameplay")
         {
             var hasMoved = false;
 
-            //console.log("We're playing");
+            // Update the game timer and end the game if needed
+            app.gameTime += dt;
+
+            if(app.gameTime >= app.maxGameTime)
+            {
+                app.gotoScreen("gameover");
+            }
+
+            // Poll the keys and move the player character accordinlgy
             if(app.KEYCODE_LEFT.isPressed)
             {
                 app.player.addRotation(-app.rotSpeed * dt); 
@@ -223,9 +236,10 @@ var app = {
             case "gameplay":
             effects.clearAllParticles();
             this.screen.removeAllChildren();
+            this.resetGame(); 
             this.screen = new GameScreen();
             this.state = "gameplay";
-            this.resetGame();
+            this.createPlayer();
             break;
 
             case "gameover":
@@ -245,6 +259,8 @@ var app = {
     {
         if(!evt){ var evt = window.event; }  //browser compatibility
         
+        //console.log("Key " + evt.keyCode + " is down");
+
         switch(evt.keyCode) {
             case app.KEYCODE_LEFT.code:     app.KEYCODE_LEFT.isPressed = true; return false;
             case app.KEYCODE_RIGHT.code:    app.KEYCODE_RIGHT.isPressed = true; return false;
@@ -258,6 +274,8 @@ var app = {
     {
         if(!evt) { var evt = window.event; }  //browser compatibility
         
+        //console.log("Key " + evt.keyCode + " is up");
+
         switch(evt.keyCode) {
             case app.KEYCODE_LEFT.code:     app.KEYCODE_LEFT.isPressed = false; break;
             case app.KEYCODE_RIGHT.code:    app.KEYCODE_RIGHT.isPressed = false; break;
@@ -279,26 +297,33 @@ var app = {
         // If we're in the game, track the number of clicks
         if(app.state == "gameplay")
         {
-            app.numClicks++;
+            app.addToScore(app.pointsPerClick);
 
-            app.screen.clickUI.text = "NumClicks: " + app.numClicks + "/" + app.maxClicks;
-
-            // If we've hit the max, end the game
-            if(app.numClicks >= app.maxClicks)
-            {
-                app.gotoScreen("gameover");
-            }
+            app.screen.scoreUI.text = "Score: " + app.score;
         }
     },
 
+    // Change the score by the given amount
+    addToScore: function(points)
+    {
+        app.score += points;
+    },
+
+    // Called whenever we need to reset the game
     resetGame: function()
     {
-        app.numClicks = 0;
+        app.score = 0;
+        app.gameTime = 0;
+    },
+
+    // Creates the player object
+    createPlayer: function()
+    {
         app.player = new Actor(app.stage, "sprite", "pig", "player", app.SCREEN_WIDTH / 2, app.SCREEN_HEIGHT /2, 0.5, 0.5);
         app.player.playAnimation("idle", true);
         app.gameObjects.push(app.player);
         effects.basicImageParticleStream(app.player.position);
-    },
+    }
 
 }
     
