@@ -8,7 +8,7 @@ class EndScreen extends ScreenBase
         ui.makeText(this, "GAME OVER", app.SCREEN_WIDTH / 2, 100, ui.titleFont.font, ui.titleFont.color);
 
         // Show num clicks again
-        this.scoreUI = ui.makeText(this, "Score: " + app.score, app.SCREEN_WIDTH / 2, 250, ui.defaultFont.font, ui.defaultFont.color);
+        this.scoreUI = ui.makeText(this, "SCORE: " + app.score, app.SCREEN_WIDTH / 2, 250, ui.defaultFont.font, ui.defaultFont.color);
 
         // Make a replay button
         var textInfo = { text: "PLAY AGAIN" };

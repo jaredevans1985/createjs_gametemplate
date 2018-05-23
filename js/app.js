@@ -141,6 +141,8 @@ var app = {
             // Update the game timer and end the game if needed
             app.gameTime += dt;
 
+            app.screen.timerUI.text = "TIME LEFT: " + (((app.maxGameTime - app.gameTime) | 0) + 1);
+
             if(app.gameTime >= app.maxGameTime)
             {
                 app.gotoScreen("gameover");
@@ -299,7 +301,7 @@ var app = {
         {
             app.addToScore(app.pointsPerClick);
 
-            app.screen.scoreUI.text = "Score: " + app.score;
+            app.screen.scoreUI.text = "SCORE: " + app.score;
         }
     },
 
