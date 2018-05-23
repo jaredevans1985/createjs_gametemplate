@@ -31,6 +31,7 @@ var app = {
     //  - gameplay
     //  - mainmenu
     //  - gameover
+    //  - help
     gamestate: "loading",
 
     // Track the particle emitters
@@ -134,6 +135,10 @@ var app = {
         {
             // Anything specific in the main menu state
         }
+        else if (app.state == "help")
+        {
+            // Anything specific in the help state
+        }
         else if (app.state == "gameplay")
         {
             var hasMoved = false;
@@ -209,6 +214,10 @@ var app = {
         {
             //console.log("We're playing");
         }
+        else if (app.state == "help")
+        {
+            //console.log("We're playing");
+        }
         else if (app.state == "gameplay")
         {
             //console.log("We're playing");
@@ -233,6 +242,13 @@ var app = {
             this.screen.removeAllChildren();
             this.screen = new MainMenu();
             this.state = "mainmenu";
+            break;
+
+            case "help":
+            effects.clearAllParticles();
+            this.screen.removeAllChildren();
+            this.screen = new HelpScreen();
+            this.state = "help";
             break;
 
             case "gameplay":
