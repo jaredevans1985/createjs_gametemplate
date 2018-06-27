@@ -95,10 +95,10 @@ var app = {
         
         // Set up our game loop
         createjs.Ticker.addEventListener("tick", this.update);
-        createjs.Ticker.setFPS(this.FPS);
+        createjs.Ticker.framerate = this.FPS;
 
         // Create the first screen
-        //this.gotoScreen("loading");
+        this.gotoScreen("loading");
 
     },
 
@@ -233,8 +233,8 @@ var app = {
         // In most cases, we clear all the children of the current screen 
         switch(screenType)
         {
+			// This loading screen is a special case, and is included in assets.js
             case "loading":
-            effects.clearAllParticles();
             this.screen.removeAllChildren();
             this.screen = new LoadingScreen();
             this.state = "loading";
