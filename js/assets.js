@@ -14,34 +14,64 @@ var assets = {
         // PreloadJS will try to automatically parse what kind of file we're loading 
         // We can consider making a seperate JSON file that has all of this info in it
         manifest = [
+			{
+                src: "../js/audio.js",
+            },
+			{
+                src: "../js/utils.js",
+            },
+			{
+                src: "../js/ui/screen.js",
+            },
+			{
+                src: "../js/ui/mainmenu.js",
+            },
+			{
+                src: "../js/ui/helpscreen.js",
+            },
+			{
+                src: "../js/ui/gamescreen.js",
+            },
+			{
+                src: "../js/ui/endscreen.js",
+            },
+			{
+                src: "../js/ui/ui.js",
+            },
+			{
+                src: "../js/effects/particle.js",
+            },
+			{
+                src: "../js/gameobjects/actor.js",
+            },
             {
-                src: "audio/click.mp3",
+                src: "../media/audio/click.mp3",
                 id: "click"
             },
             {
-                src: "images/particle.png",
+                src: "../media/images/particle.png",
                 id: "particle"
             },
             {
-                src: "images/pigsheet.json",
+                src: "../media/images/pigsheet.json",
                 id:"pig",
                 type:"spritesheet",
                 crossOrigin:true
             },
             {
-                src: "images/ui/soundbuttons.json",
+                src: "../media/images/ui/soundbuttons.json",
                 id:"soundui",
                 type:"spritesheet",
                 crossOrigin:true
             },
             {
-                src: "audio/music.mp3",
+                src: "../media/audio/music.mp3",
                 id: "music"
             },
         ];
 
         // Set the root filepath for our assets
-        this.queue = new createjs.LoadQueue(true, "../media/");
+        this.queue = new createjs.LoadQueue(true);
     
         // Use the following to use 'mp3' if 'ogg' doesn't work on browser
         createjs.Sound.alternateExtensions = ["mp3"];

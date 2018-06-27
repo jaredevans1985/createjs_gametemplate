@@ -98,7 +98,7 @@ var app = {
         createjs.Ticker.setFPS(this.FPS);
 
         // Create the first screen
-        this.gotoScreen("loading");
+        //this.gotoScreen("loading");
 
     },
 
@@ -112,7 +112,10 @@ var app = {
         app.elapsedTime += dt;
 
         app.stage.update(event);  //updates the stage
-        app.screen.update(dt); // update the current screen
+		if(app.screen.update !== undefined)
+		{
+			app.screen.update(dt); // update the current screen
+		}
 
         // Update all of our game objects
         for (var i = 0; i < app.gameObjects.length; i++)
