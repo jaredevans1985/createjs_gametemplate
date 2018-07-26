@@ -39,6 +39,9 @@ var assets = {
                 src: "../js/ui/ui.js",
             },
 			{
+                src: "../js/effects/effects.js",
+            },
+            {
                 src: "../js/effects/particle.js",
             },
 			{

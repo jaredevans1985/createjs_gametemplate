@@ -1,8 +1,9 @@
 // Define and create a single particle object
 function Particle () {
 	this.parent = null;
+	this.assetList = null;
 	this.lifetime = 100;
-	this.startingLifetime
+	this.startingLifetime = 0;
 	this.size = 10;
 	this.startScale = 1;
 	this.endScale = 0;
@@ -63,13 +64,15 @@ function Particle () {
 			// Note: this.imageID must be valid
 			else if (this.type == "bitmap")
 			{
-				this.particleVisual = new createjs.Bitmap(assets.getResult(this.imageID));
+				if(this.assetList === null) { console.log("ERROR: Trying to make bitmap particle but no asset list is available"); };
+				this.particleVisual = new createjs.Bitmap(this.assetList.getResult(this.imageID));
 			}
 			// If this isn't a shape or a bitmap, but a sprite from a spritemap, create it here
 			// Note: this.imageID must be valid
 			else if (this.type == "sprite")
 			{
-				this.particleVisual = new createjs.Sprite(assets.getResult(this.imageID));
+				if(this.assetList === null) { console.log("ERROR: Trying to make sprite particle but no asset list is available"); };
+				this.particleVisual = new createjs.Sprite(this.assetList.getResult(this.imageID));
 
 				// Play the specified animation for this sprite
 				this.particleVisual.gotoAndPlay(this.animID);
@@ -129,10 +132,11 @@ function Particle () {
 		var newPoint = new createjs.Point(this.velocity.x * dt, this.velocity.y * dt);
 		var transformMatrix = new createjs.Matrix2D();
 		transformMatrix.rotate(this.emitterRotation);
+		
 		transformMatrix.transformPoint(newPoint.x, newPoint.y, newPoint);
 		this.position.x += newPoint.x;
 		this.position.y += newPoint.y;
-
+		
 		// Update our rotation
 		this.rotation += this.rotationRate * dt;
 
@@ -155,6 +159,8 @@ function Emitter () {
 	this.particles = [];
 	this.maxParticleCount = 100;
 	this.parent = null;
+	this.emitterArray = null;
+	this.assetList = null;
 	this.relativeTo = null;
 	this.emitterRotation = 0;
 	this.positionOffsetX = { min: 0, max: 0 };
@@ -195,6 +201,7 @@ function Emitter () {
 	{
 		var p = new Particle();
 		p.parent = this.parent;
+		p.assetList = this.assetList;
 		p.lifetime = rand(this.lifetime.min, this.lifetime.max);
 		
 		// Set the initial position, taking into account the emitter's rotation for the offset
@@ -231,28 +238,43 @@ function Emitter () {
 		if(this.relativeTo !== null)
 		{
 			// Update our position (if it exists)
-			if(this.relativeTo.position !== null)
+			if(this.relativeTo.position !== null && this.relativeTo.position !== undefined )
 			{
 				this.position.x = this.relativeTo.position.x !== null ? this.relativeTo.position.x : this.position.x;
 				this.position.y = this.relativeTo.position.y !== null ? this.relativeTo.position.y : this.position.y;
 			}
+			else if (this.relativeTo.pos !== null && this.relativeTo.pos !== undefined )
+			{
+				this.position.x = this.relativeTo.pos.x !== null ? this.relativeTo.pos.x : this.position.x;
+				this.position.y = this.relativeTo.pos.y !== null ? this.relativeTo.pos.y : this.position.y;
+			}
+			else
+			{
+				console.log("WARNING: A particle emitter with a relativeTo object cannot find a position: {x:0, y:0} or a pos: {x:0, y:0} property on the relativeTo object.");
+			}
 			
 			// Update our rotation (if it exists)
-			if(this.relativeTo.rotation !== null)
+			if(this.relativeTo.rotation !== null && this.relativeTo.rotation !== undefined )
 			{
 				this.emitterRotation = this.relativeTo.rotation;
+			}
+			else
+			{
+				console.log("WARNING: A particle emitter with a relativeTo object cannot find a rotation property on that object.");
 			}
 		}
 
 		// Update each of our particles, and clean them up if they're dead
-		this.particles.forEach(function(p,i,array) {
-			if (p.isDead()) {
-				p.dispose();
-				array.splice(i,1);
+		for (var i = this.particles.length - 1; i >= 0; i-- )
+		{
+			if (this.particles[i].isDead()) {
+				this.particles[i].dispose();
+				this.particles.splice(i,1);
 			} else {
-				p.update(dt);
+				this.particles[i].update(dt);
 			}
-		});
+		}
+
 		
 		// How long since the last particle was spawned
 		this.timeSinceLastSpawn += 1 * dt;
@@ -306,228 +328,77 @@ function Emitter () {
 	// When called, this function kills all of the particles for this emitter, and then destroys the emitter
 	this.kill = function()
 	{
-		this.particles.forEach(function(p,i,array) {
-			p.dispose();
-			array.splice(i,1);
-		});
+		// Clear up all of the particles
+		for (var i = this.particles.length - 1; i >= 0; i-- )
+		{
+			this.particles[i].dispose();
+			this.particles.splice(i,1);
+		}
 
-		var myIndex = app.particleSystem.indexOf(this);
-		app.particleSystem.splice(myIndex, 1);
-		
-	}
+		if(this.emitterArray !== null)
+		{
+			var myIndex = this.emitterArray.indexOf(this);
+			this.emitterArray.splice(myIndex, 1);
+		}
+		else
+		{
+			console.log("ERROR: Cannot delete emitter because emitterArray is not set");
+		}
+	};
+
+	// When this is called, keep the emitter around until all its current particles are dead
+	this.killWhenCurrentParticlesDie = function()
+	{
+		// Basically we're turning this emitter into a burst emitter
+		// This keeps the particles around until the emitter goes away
+		this.burstCount = this.particles.length;
+	};
 }
 
-// This effects object contains functions to build all of our effects as needed
-var effects = {
-	// Add a new emitter to the particle system and return the new object
-	getNewEmitter: function()
-	{
-		var newEmitter = new Emitter();
-		newEmitter.parent = app.stage;	// Setting a default parent
-		app.particleSystem.push( newEmitter );
-		return newEmitter;
-	},
+// Give us a random number between a minimum and maximum
+// TODO: Put this in a utils file or something
+function rand(min, max) {
+	return (Math.floor(Math.random() * (max*1000 - min*1000 + 1)) + min*1000)/1000;
+}
 
-	// Clear all particles from the particle system
-	clearAllParticles: function()
-	{
-		app.particleSystem.forEach(emitter => {
-			emitter.kill();
-		});
-	},
+// Give us a random RGBA color between a min and max RGBA color
+function randColor (min, max) {
+	return new RGBA(
+		rand(min.r, max.r),
+		rand(min.g, max.g),
+		rand(min.b, max.b),
+		rand(min.a, max.a)
+	);
+}
 
-	// Example emitter creator function
-	// --------------
-	//
-	// Feel free to copy and uncomment this example function to create your own
-	//
-	// To use it, simply call the function from anywhere,
-	// and a new emitter will be added to the app particle system.
-	//
-	//exampleEmitter: function(position)	// You can add more arguments. Position can be an object reference for tracking
-	//{
-	//	// Get a new emitter
-	//	var newEmitter = this.getNewEmitter();
-	//
-	//	// Define the settings for this emitter and its particles
-	//	// Note that almost all of these settings have defaults,
-	//	// so omit the ones you don't need.
-	//
-	//	// Emitter settings	
-	// 	this.maxParticleCount = 100;	// Maximum number of particles allowed in the system, default is 100
-	// 	this.position = { x: 0, y: 0 };	// Where this emitter is, used as origin for particles
-	// 	this.positionOffsetX = { min: 0, max: 0 };	// a range for how far from the emitter origin a particle can spawn
-	// 	this.positionOffsetY = { min: 0, max: 0 };	// a range for how far from the emitter origin a particle can spawn
-	//	this.emitterRotation = 0;	// The rotation of this emitter, applied to particles spawned from it
-	// 	this.emitterLifetime = null;	// If this is set to a value, how many seconds should this emitter exist
-	// 	this.rate = 1;	// The rate at which this emitter spawns particles
-	//	this.parent	= <a createjs object with the addChild method> // Common examples are the createjs stage or a container
-	// 	this.burstCount = 0; 	// NOTE: If this is set, this emitter functions as a burst,
-	// 							// spawning the number of particles in burst count at once,
-	// 							// and dies when all of its particles are dead. It will not
-	// 							// have the standard before of other emitters
-	//	this.relativeTo = null;		// You can see this to a javascript object
-	//								// If the object has a position: {x: 0, y: 0} object, the emitter will stay relative to that
-	//								// If the object has a rotation: 0 property, partilces will spawn and move relative to the emitter's rotation
-	//
-	// 	// Particle settings
-	// 	this.lifetime = { min: 1, max: 2 };		// a range of how long in seconds a particle can exist
-	// 	this.velocityX = { min: 0, max: 0 };	// a range for x velocity assigned randomly on creation
-	// 	this.velocityY = { min: 0, max: 0 };	// a range for y velocity assigned randomly on creation		
-	//	this.rotation = { min: 0, max: 0 };		// a range for initial rotation (degrees)
-	//	this.rotationRate = { min: 0, max: 0 };	// a range for the rate of rotation each frame (degrees)
-	// 	this.size = { min: 5, max: 10 };		// a range of how big this particle can be (does not apply to sprites)
-	// 	this.type = "circle";	// What kind of particle is it? "circle", "square", "bitmap", "sprite"
-	//	this.imageID = "";		// Only used if type is "bitmap" or "sprite", used to get the image result from assets
-	//	this.animID = "";		// Only used if type is "sprite"
-	// 	this.gradientFill = false;	// If true, will use the start and end colors to create a gradient
-	// 	this.startScale = 1;	// What scale these particles start at (1 = 100%)
-	// 	this.endScale = 0;	// What scale these particles will interpolate to over their lifetime (1 = 100%)
-	//
-	// 	// A range of colors that this particle will start with
-	// 	this.startColor = {
-	// 		min: new RGBA(200,80,0,125),
-	// 		max: new RGBA(255,160,0,125)
-	// 	};
-	//	
-	// 	// A range of colors that this particle will end with
-	// 	this.endColor = {
-	// 		min: new RGBA(220,0,0,0),
-	// 		max: new RGBA(255,0,0,0)
-	// 	};
-	//
-	// },
+// Lerp between two colors
+function lerpColor(colorA, colorB, value)
+{
+	// Interpolate between all of the values
+	var r = lerp(colorA.r, colorB.r, value);
+	var g = lerp(colorA.g, colorB.g, value);
+	var b = lerp(colorA.b, colorB.b, value);
+	var a = lerp(colorA.a, colorB.a, value);
 
-	// This is a basic emitter that constantly creates particles at a given rate
-	basicStream: function(position)
-	{
-		// Get a new emitter
-		var newEmitter = this.getNewEmitter();
+	// Return our new color
+	return new RGBA(r, g, b, a);
+}
 
-		// Define the settings for this emitter
-		newEmitter.lifetime = { min: 1, max: 2 };
-        newEmitter.position = position;
-        newEmitter.positionOffsetX = { min: -3, max: 3 };
-        newEmitter.positionOffsetY = { min: -3, max: 3 };
-        newEmitter.velocityY = { min: -100, max: 100 };
-        newEmitter.velocityX = { min: -100, max: 100 };
-        newEmitter.size = { min: 10, max: 15 };
-		newEmitter.rate = 10;
+function lerp(valA, valB, value)
+{
+	// Clamp the value
+	value = value > 1 ? 1 : value;
+	value = value < 0 ? 0 : value;
+	return valA * (1 - value) + valB * value;
+}
 
-        newEmitter.startColor = {
-            min: new RGBA(230,50,0,255),
-            max: new RGBA(255,230,0,255)
-        };
-        
-        newEmitter.endColor = {
-            min: new RGBA(255,255,255,0),
-            max: new RGBA(255,255,255,0)
-        };
-	},
-
-	// A basic burst that creates a given number of particles all at once and dies when those particles do
-	basicBurst: function(position)
-	{
-		// Find where our new emitter should go and create it
-		var newEmitter = this.getNewEmitter();
-
-		// Define the settings for this emitter
-		// Because we define a burstCount for this emitter, it will function as a burst
-		// The emitter will automatically kill itself after its particles are dead
-		newEmitter.burstCount = 15;
-		newEmitter.lifetime = { min: 1, max: 2 };
-		newEmitter.type = "square";
-        newEmitter.position = position;
-        newEmitter.positionOffsetX = { min: -3, max: 3 };
-        newEmitter.positionOffsetY = { min: -3, max: 3 };
-        newEmitter.velocityY = { min: -100, max: 100 };
-        newEmitter.velocityX = { min: -100, max: 100 };
-		newEmitter.size = { min: 10, max: 15 };
-		newEmitter.emitterRotation = 45;
-		newEmitter.rotation = { min: 0, max: 360 };
-		newEmitter.rotationRate = { min: 90, max: 180 };
-		newEmitter.endScale = 0.75;
-
-        newEmitter.startColor = {
-            min: new RGBA(0,50,230,255),
-            max: new RGBA(0,230,255,255)
-        };
-        
-        newEmitter.endColor = {
-            min: new RGBA(255,255,255,0),
-            max: new RGBA(255,255,255,0)
-        };
-	},
-
-	// A basic image particle stream that uses a preloaded bitmap image instead of a shape
-	basicImageParticleStream: function(position)
-	{
-		// Get a new emitter
-		var newEmitter = this.getNewEmitter();
-
-		// Define the settings for this emitter
-		// This particle uses an image
-		// The type must be set to either "bitmap" or "sprite"
-		// You must then provide a valid asset ID
-		newEmitter.type = "bitmap";
-		newEmitter.imageID = "particle";
-		newEmitter.lifetime = { min: 10, max: 2 };
-        newEmitter.position = position;
-        newEmitter.positionOffsetX = { min: -3, max: 3 };
-        newEmitter.positionOffsetY = { min: -3, max: 3 };
-        newEmitter.velocityY = { min: -100, max: 100 };
-        newEmitter.velocityX = { min: -100, max: 100 };
-        newEmitter.radius = { min: 30, max: 45 };
-		newEmitter.rate = 10;
-		newEmitter.rotation = { min: 0, max: 360 };
-		newEmitter.rotationRate = { min: 90, max: 180 };
-		newEmitter.startScale = 0.5;
-
-		// Note: even though we don't need a color, the alpha value is used to fade the image
-		newEmitter.startColor = {
-            min: new RGBA(255,255,255,0.5),
-            max: new RGBA(255,255,255,0.5)
-		};
-		
-        newEmitter.endColor = {
-            min: new RGBA(255,255,255,0),
-            max: new RGBA(255,255,255,0)
-        };
-	},
-
-	// An image particle stream that follows stays relative to an objects rotation and position
-	basicRelativeImageParticleStream: function(relativeObject)
-	{
-		// Get a new emitter
-		var newEmitter = this.getNewEmitter();
-
-		// Define the settings for this emitter
-		// This particle uses an image
-		// The type must be set to either "bitmap" or "sprite"
-		// You must then provide a valid asset ID
-		newEmitter.type = "bitmap";
-		newEmitter.imageID = "particle";
-		newEmitter.relativeTo = relativeObject;
-		newEmitter.lifetime = { min: 2, max: 6 };
-        newEmitter.positionOffsetX = { min: -55, max: -50 };
-        newEmitter.velocityX = { min: -100, max: -75 };
-        newEmitter.radius = { min: 30, max: 45 };
-		newEmitter.rate = 10;
-		newEmitter.rotation = { min: 0, max: 360 };
-		newEmitter.rotationRate = { min: 90, max: 180 };
-		newEmitter.startScale = 1;
-		newEmitter.endScale = 0;
-		
-		// Note: even though we don't need a color, the alpha value is used to fade the image
-		newEmitter.startColor = {
-            min: new RGBA(255,255,255,0.5),
-            max: new RGBA(255,255,255,0.5)
-		};
-		
-        newEmitter.endColor = {
-            min: new RGBA(255,255,255,0),
-            max: new RGBA(255,255,255,0)
-        };
-	},
-
-};
+// Return a color defined in RGBA format
+function RGBA (r,g,b,a) {
+	this.r = r;
+	this.g = g;
+	this.b = b;
+	this.a = a;
+	this.str = function() {
+		return "rgba("+Math.round(this.r)+","+Math.round(this.g)+","+Math.round(this.b)+","+Math.round(this.a)+")";
+	};
+}

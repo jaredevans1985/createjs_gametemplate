@@ -37,7 +37,7 @@ var app = {
     // Track the particle emitters
     // We'll update this in update
     // Note that since our particles are createjs objects, createjs will do the drawing for us
-    particleSystem: [],
+    particleEmitters: [],
 
     // Track score
     score: 0,
@@ -124,9 +124,9 @@ var app = {
         }
 
         // Particle test code
-        for (var i = 0; i < app.particleSystem.length; i++)
+        for (var i = 0; i < app.particleEmitters.length; i++)
         {
-            app.particleSystem[i].update(dt);            
+            app.particleEmitters[i].update(dt);            
         }
 
         // Update our game to match the state
@@ -343,7 +343,7 @@ var app = {
         app.player = new Actor(app.stage, "sprite", "pig", "player", app.SCREEN_WIDTH / 2, app.SCREEN_HEIGHT /2, 0.5, 0.5);
         app.player.playAnimation("idle", true);
         app.gameObjects.push(app.player);
-        effects.basicRelativeImageParticleStream(app.player);
+        effects.basicRelativeImageStream(app.player, "bitmap", "particle");
     }
 
 }
