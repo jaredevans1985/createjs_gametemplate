@@ -343,7 +343,7 @@ var app = {
         app.player = new Actor(app.stage, "sprite", "pig", "player", app.SCREEN_WIDTH / 2, app.SCREEN_HEIGHT /2, 0.5, 0.5);
         app.player.playAnimation("idle", true);
         app.gameObjects.push(app.player);
-        effects.basicImageParticleStream(app.player.position);
+        effects.basicRelativeImageParticleStream(app.player);
     }
 
 }

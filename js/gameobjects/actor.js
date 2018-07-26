@@ -2,7 +2,7 @@ class Actor {
     constructor(parent, type, imageID, name = "actor", x = 0, y = 0, scaleX = 1, scaleY = 1, rotation = 0)
     {
         // create and parent the image
-        
+        this._container = new createjs.Container();
         if(type == "bitmap")
         {
             this._image = new createjs.Bitmap(assets.getResult(imageID));
@@ -11,7 +11,8 @@ class Actor {
         {
             this._image = new createjs.Sprite(assets.getResult(imageID));
         }
-        parent.addChild(this._image);
+        parent.addChild(this._container);
+        this._container.addChild(this._image);
 
         // Set the name
         this._name = name;
@@ -20,12 +21,12 @@ class Actor {
         this._position = {x: x, y: y};
         this._rotation = rotation;
 
-        // Set the atributes of the image
-        this._image.x = this._position.x;
-        this._image.y = this._position.y;
-        this._image.scaleX = scaleX;
-        this._image.scaleY = scaleY;
-        this._image.rotation = this._rotation;    // degrees
+        // Set the attributes of the container
+        this._container.x = this._position.x;
+        this._container.y = this._position.y;
+        this._container.scaleX = scaleX;
+        this._container.scaleY = scaleY;
+        this._container.rotation = this._rotation;    // degrees
 
         // Set a central reg x point (only need to do this for bitmaps)
         if(type == "bitmap")
@@ -34,6 +35,9 @@ class Actor {
             this._image.regY = this._image.getBounds().height/2;
         }
     }
+
+    get container() { return this._container; }
+    set container(c) { this._container = c; }
 
     get image() { return this._image; }
     set image(i) { this._image = i; }
@@ -88,9 +92,9 @@ class Actor {
     update(dt)
     {
         // Update our position and rotation
-        this._image.x = this._position.x;
-        this._image.y = this._position.y;
-        this._image.rotation = this._rotation;
+        this._container.x = this._position.x;
+        this._container.y = this._position.y;
+        this._container.rotation = this._rotation;
     }
 
     draw(dt)

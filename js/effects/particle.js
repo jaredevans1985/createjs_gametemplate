@@ -1,5 +1,6 @@
 // Define and create a single particle object
 function Particle () {
+	this.parent = null;
 	this.lifetime = 100;
 	this.startingLifetime
 	this.size = 10;
@@ -9,6 +10,7 @@ function Particle () {
 	this.endColor = new RGBA(255,0,0,0);
 	this.position = { x: 0, y: 0 };
 	this.velocity = { x: 0, y: 0 };
+	this.emitterRotation = 0;
 	this.rotation = 0;
 	this.rotationRate = 0;
 	this.type = "circle";	// "circle", "square", "bitmap", "sprite"
@@ -96,7 +98,7 @@ function Particle () {
 			createjs.Tween.get(this.particleVisual)
 				.to({ alpha: this.endColor.a, useTicks: true }, this.lifetime * 1000);
 
-			app.stage.addChild(this.particleVisual);
+			this.parent.addChild(this.particleVisual);
 		}
 		
 		// If we don't have a gradient fill, and we're a shape, then we need to clear 
@@ -122,22 +124,27 @@ function Particle () {
 		this.particleVisual.scaleX = curScale;
 		this.particleVisual.scaleY = curScale;
 
-		// Set our position and rotation
-		this.particleVisual.x = this.position.x;
-		this.particleVisual.y = this.position.y;
-		this.particleVisual.rotation = this.rotation;
-
-		// Update our position
-		this.position.x += this.velocity.x * dt;
-		this.position.y += this.velocity.y * dt;
+		// Update our position based on our velocity
+		// This will be based on the emitter rotation when this particle was created
+		var newPoint = new createjs.Point(this.velocity.x * dt, this.velocity.y * dt);
+		var transformMatrix = new createjs.Matrix2D();
+		transformMatrix.rotate(this.emitterRotation);
+		transformMatrix.transformPoint(newPoint.x, newPoint.y, newPoint);
+		this.position.x += newPoint.x;
+		this.position.y += newPoint.y;
 
 		// Update our rotation
 		this.rotation += this.rotationRate * dt;
+
+		// Set our position and rotation for the visual component
+		this.particleVisual.x = this.position.x;
+		this.particleVisual.y = this.position.y;
+		this.particleVisual.rotation = this.rotation;
 	};
 	
 	// Remove this object from the stage
 	this.dispose = function() {
-		app.stage.removeChild(this.particleVisual);
+		this.parent.removeChild(this.particleVisual);
 	};
 }
 
@@ -147,6 +154,8 @@ function Emitter () {
 	// Emitter settings
 	this.particles = [];
 	this.maxParticleCount = 100;
+	this.parent = null;
+	this.relativeTo = null;
 	this.emitterRotation = 0;
 	this.positionOffsetX = { min: 0, max: 0 };
 	this.positionOffsetY = { min: 0, max: 0 };
@@ -185,9 +194,17 @@ function Emitter () {
 	this.spawnParticle = function()
 	{
 		var p = new Particle();
+		p.parent = this.parent;
 		p.lifetime = rand(this.lifetime.min, this.lifetime.max);
-		p.position = { x: this.position.x + rand(this.positionOffsetX.min, this.positionOffsetX.max),
-					y: this.position.y + rand(this.positionOffsetY.min, this.positionOffsetY.max) };
+		
+		// Set the initial position, taking into account the emitter's rotation for the offset
+		var offset = new createjs.Point(rand(this.positionOffsetX.min, this.positionOffsetX.max), rand(this.positionOffsetY.min, this.positionOffsetY.max));
+		var rotationMatrix = new createjs.Matrix2D();
+		rotationMatrix.rotate(this.emitterRotation);
+		rotationMatrix.transformPoint(offset.x, offset.y, offset);
+		p.position = { x: this.position.x + offset.x, y: this.position.y + offset.y };
+		
+		p.emitterRotation = this.emitterRotation;
 		p.rotation = this.emitterRotation + rand(this.rotation.min, this.rotation.max);
 		p.rotationRate = rand(this.rotationRate.min, this.rotationRate.max);
 		p.size = rand(this.size.min, this.size.max);
@@ -209,7 +226,24 @@ function Emitter () {
 
 	// This is the update function for our emitter
 	this.update = function(dt) {
-		
+
+		// If we have an object to be relative to, update our position and rotation based on that
+		if(this.relativeTo !== null)
+		{
+			// Update our position (if it exists)
+			if(this.relativeTo.position !== null)
+			{
+				this.position.x = this.relativeTo.position.x !== null ? this.relativeTo.position.x : this.position.x;
+				this.position.y = this.relativeTo.position.y !== null ? this.relativeTo.position.y : this.position.y;
+			}
+			
+			// Update our rotation (if it exists)
+			if(this.relativeTo.rotation !== null)
+			{
+				this.emitterRotation = this.relativeTo.rotation;
+			}
+		}
+
 		// Update each of our particles, and clean them up if they're dead
 		this.particles.forEach(function(p,i,array) {
 			if (p.isDead()) {
@@ -261,6 +295,7 @@ function Emitter () {
 				this.kill();
 			}
 		}
+
 		// Check to see if this is a burst emitter whose particles are all dead
 		else if(this.burstCount > 0 && this.particles.length <= 0)
 		{
@@ -284,11 +319,11 @@ function Emitter () {
 
 // This effects object contains functions to build all of our effects as needed
 var effects = {
-
 	// Add a new emitter to the particle system and return the new object
 	getNewEmitter: function()
 	{
 		var newEmitter = new Emitter();
+		newEmitter.parent = app.stage;	// Setting a default parent
 		app.particleSystem.push( newEmitter );
 		return newEmitter;
 	},
@@ -326,10 +361,14 @@ var effects = {
 	//	this.emitterRotation = 0;	// The rotation of this emitter, applied to particles spawned from it
 	// 	this.emitterLifetime = null;	// If this is set to a value, how many seconds should this emitter exist
 	// 	this.rate = 1;	// The rate at which this emitter spawns particles
+	//	this.parent	= <a createjs object with the addChild method> // Common examples are the createjs stage or a container
 	// 	this.burstCount = 0; 	// NOTE: If this is set, this emitter functions as a burst,
 	// 							// spawning the number of particles in burst count at once,
 	// 							// and dies when all of its particles are dead. It will not
 	// 							// have the standard before of other emitters
+	//	this.relativeTo = null;		// You can see this to a javascript object
+	//								// If the object has a position: {x: 0, y: 0} object, the emitter will stay relative to that
+	//								// If the object has a rotation: 0 property, partilces will spawn and move relative to the emitter's rotation
 	//
 	// 	// Particle settings
 	// 	this.lifetime = { min: 1, max: 2 };		// a range of how long in seconds a particle can exist
@@ -444,6 +483,41 @@ var effects = {
 		newEmitter.rotationRate = { min: 90, max: 180 };
 		newEmitter.startScale = 0.5;
 
+		// Note: even though we don't need a color, the alpha value is used to fade the image
+		newEmitter.startColor = {
+            min: new RGBA(255,255,255,0.5),
+            max: new RGBA(255,255,255,0.5)
+		};
+		
+        newEmitter.endColor = {
+            min: new RGBA(255,255,255,0),
+            max: new RGBA(255,255,255,0)
+        };
+	},
+
+	// An image particle stream that follows stays relative to an objects rotation and position
+	basicRelativeImageParticleStream: function(relativeObject)
+	{
+		// Get a new emitter
+		var newEmitter = this.getNewEmitter();
+
+		// Define the settings for this emitter
+		// This particle uses an image
+		// The type must be set to either "bitmap" or "sprite"
+		// You must then provide a valid asset ID
+		newEmitter.type = "bitmap";
+		newEmitter.imageID = "particle";
+		newEmitter.relativeTo = relativeObject;
+		newEmitter.lifetime = { min: 2, max: 6 };
+        newEmitter.positionOffsetX = { min: -55, max: -50 };
+        newEmitter.velocityX = { min: -100, max: -75 };
+        newEmitter.radius = { min: 30, max: 45 };
+		newEmitter.rate = 10;
+		newEmitter.rotation = { min: 0, max: 360 };
+		newEmitter.rotationRate = { min: 90, max: 180 };
+		newEmitter.startScale = 1;
+		newEmitter.endScale = 0;
+		
 		// Note: even though we don't need a color, the alpha value is used to fade the image
 		newEmitter.startColor = {
             min: new RGBA(255,255,255,0.5),
